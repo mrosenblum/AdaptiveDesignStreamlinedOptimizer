@@ -24,17 +24,27 @@ default.report.iteration <- 1
 default.power.penalty <- 1000
 default.boundary.to.enroll <- 1
 
-code.dir <- "."
-optimizer.file <- "design_optimizer.R"
-performance.file <- "ComputePerformanceMetrics.R"
-binary.search.file <- "Utility_BinarySearch.R"
-backend.1tvc.file <- "Backend2Populations1Arm.R"
-backend.2tvc.file <- "Backend2Populations2Arms.R"
+#code.dir <- "."
+#optimizer.file <- "design_optimizer.R"
+#performance.file <- "ComputePerformanceMetrics.R"
+#binary.search.file <- "Utility_BinarySearch.R"
+#backend.1tvc.file <- "Backend2Populations1Arm.R"
+#backend.2tvc.file <- "Backend2Populations2Arms.R"
+
+# Read in bash arguments from command line - extract parameters
+bash.args <- commandArgs(trailingOnly=TRUE)
+if(length(bash.args)>0) {
+  for(i in 1:length(bash.args)) eval(parse(text=bash.args[i]))
+}
 
 # Read in optimizer code
 source(file.path(code.dir, optimizer.file))
+source(file.path(code.dir, binsearch.file))
 source(file.path(code.dir, performance.file))
-source(file.path(code.dir, binary.search.file))
+
+# Load parameters from user interface
+load(file.path(data.dir, "parameters", "ui.parameters.rda"))
+
 
 # Load parameters from user interface
 #load(file.path(data.dir, "parameters", "ui.parameters.rda"))
@@ -53,7 +63,7 @@ source(file.path(code.dir, binary.search.file))
 # Binary Example
 #load("michael_09252017_2100.rda")
 # Survival Example
-load("michael_09252017_2112.rda")
+#load("michael_09252017_2112.rda")
 
 # Get start time
 isa.start.time <- proc.time()
@@ -513,4 +523,4 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
 }
 
 save(osea.result,osoa.result,tsea.result,tsoa.result,file="optimizer_output.rda")
-knit("../optimizer_report_final.Rnw")
+knit(file.path(code.dir, report.generator.file))
