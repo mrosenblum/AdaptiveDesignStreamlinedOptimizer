@@ -522,5 +522,5 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 power.constraints=ui.desired.power)
 }
 
-save(osea.result,osoa.result,tsea.result,tsoa.result,file="optimizer_output.rda")
-knit(file.path(code.dir, report.generator.file))
+#save(osea.result,osoa.result,tsea.result,tsoa.result,file=file.path(data.dir,"results","optimizer_output.rda"))
+knit(file.path(code.dir, report.generator.file),output=file.path(data.dir,"results","trial_design_performance_report.tex"))

@@ -67,8 +67,9 @@ function simulation_setup {
 			"run.date=\"$run_date\""\
 			"initial.seed=12345"
 		wait
-		latex optimizer_report_final.tex
-		pdflatex optimizer_report_final
+		latex ${run_dir}/results/trial_design_performance_report.tex -o ${run_dir}/results/trial_design_performance_report
+		pdflatex ${run_dir}/results/trial_design_performance_report -output-directory ${run_dir}/results
+		cd ${project_root}
 	else
 		echo 'ERROR: project_root ($project_root) does not exist.'
 	fi
