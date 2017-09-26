@@ -82,10 +82,6 @@ ui.outcome.type <- ui.type.of.outcome.data
 
 n.scenarios <- nrow(ui.population.parameters)
 
-if (!("ui.n.arms" %in% ls())) {
-    ui.n.arms <- DEBUG.N.ARMS
-}
-
 n.arms <- ui.n.arms
 n.subpopulation <- 2
 n.design.types <- length(c("OSEA", "OSOA", "TSEA", "TSOA"))
@@ -102,9 +98,6 @@ if (n.arms == 3 & ui.outcome.type == "continuous") {
     OUTCOME.DISTRIBUTION <- "Table \\ref{tab:ui-outcome-distribution}"    
 }
 
-if (DEBUG.N.SIMULATION) {
-    n.simulation <- as.character(10000)
-}
 
 # user-inputs that are not always available
 
