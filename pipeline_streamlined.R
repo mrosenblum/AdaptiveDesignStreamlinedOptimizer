@@ -1,6 +1,6 @@
 ### Streamlined Design Optimization Pipeline ##########
 # Authors: Josh Betz (jbetz@jhu.edu) and Michael Rosenblum
-# Notes: Only works so far for 2 arm trials
+# 
 # 
 
 ### Fixed Parameters ###########################################################
@@ -13,7 +13,7 @@ min.enrollment.period <- 0.5    # For Survival Outcomes
 default.function.scale <- 1
 default.n.scale <- 100
 default.period.scale <- 2
-default.max.iterations <- 3 # Use for testing
+default.max.iterations <- 2 # Use for testing
 # default.max.iterations <- 5e4 # Use for production
 default.n.simulations <- 1e4
 default.means.temperature <- 100
@@ -26,28 +26,41 @@ default.boundary.to.enroll <- 1
 code.dir <- "."
 optimizer.file <- "design_optimizer.R"
 performance.file <- "ComputePerformanceMetrics.R"
+binary.search.file <- "Utility_BinarySearch.R"
 backend.1tvc.file <- "Backend2Populations1Arm.R"
 backend.2tvc.file <- "Backend2Populations2Arms.R"
 
 # Read in optimizer code
 source(file.path(code.dir, optimizer.file))
 source(file.path(code.dir, performance.file))
+source(file.path(code.dir, binary.search.file))
 
 # Load parameters from user interface
 #load(file.path(data.dir, "parameters", "ui.parameters.rda"))
+
+# TWO ARM EXAMPLES
 # Continuous Example
-load("/Users/MichaelRosenblum/Downloads/michael_09252017_1335.rda")
+load("michael_09252017_1335.rda"); ui.n.arms <- 2;
 # Binary Example
-#load("/Users/MichaelRosenblum/Downloads/michael_09252017_1508.rda")
+#load("michael_09252017_1508.rda"); ui.n.arms <- 2;
 # Survival Example
-#load("/Users/MichaelRosenblum/Downloads/michael_09252017_1551.rda")
+# load("michael_09252017_1551.rda")
+
+# THREE ARM EXAMPLES
+# Continuous Example
+#load("michael_09252017_2052.rda")
+# Binary Example
+#load("michael_09252017_2100.rda")
+# Survival Example
+#load("michael_09252017_2112.rda")
+
 # Get start time
 isa.start.time <- proc.time()
 
 ### NOTE: restricted to two subpopulations ###
 n.subpopulations <- 2 
+n.arms <- ui.n.arms
 ui.subpopulation.sizes <- c(ui.subpopulation.1.size, 1-ui.subpopulation.1.size)
-n.arms <- ui.n.arms <- 2
 # If random seed is supplied, specify seeds. Otherwise pseudorandom seeds
 # are chosen based on the initial RNG state.
 if(!exists("initial.seed")){
@@ -59,10 +72,9 @@ set.seed(initial.seed)
 
 if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   n.stages <- 1 # Single Stage
-
+  number.of.alpha.allocation.components <- n.stages*n.subpopulations
   if(n.arms==2){
     source(file.path(code.dir, backend.1tvc.file))
-    n.hypotheses <- n.stages*(n.arms-1)*n.subpopulations
     if(ui.type.of.outcome.data=="binary") {
       ui.outcome.mean <- subset(ui.population.parameters,select=c(2,4,1,3))
       ui.outcome.sd <- ui.outcome.mean*(1-ui.outcome.mean)
@@ -72,7 +84,14 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
     }
   } else if(n.arms==3){
     source(file.path(code.dir, backend.2tvc.file))
-    n.hypotheses <- n.stages*n.subpopulations
+    if(ui.type.of.outcome.data=="binary") {
+      ui.outcome.mean <- ui.population.parameters
+      ui.outcome.sd <- ui.outcome.mean*(1-ui.outcome.mean)
+    } else{
+      ui.outcome.mean <- subset(ui.population.parameters,select=c(1,3,5,7,9,11))
+      ui.outcome.sd <- subset(ui.population.parameters,select=c(2,4,6,8,10,12))
+    }
+    
   }
 
   # Computes distribution of test statistics in a given scenario,
@@ -129,8 +148,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
                                       n.simulations=default.n.simulations,
-                                      alpha.allocation=rep(1/n.hypotheses,
-                                                           n.hypotheses),
+                                      alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                                           number.of.alpha.allocation.components),
                                       total.alpha=ui.total.alpha),
                 create.object=dunnett.wrapper,
                 evaluate.object=power.penalized.weighted.ess,
@@ -146,22 +165,17 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   
 } else { # Survival Cases
   n.stages <- 1 # Single Stage
-
+  ui.hazard.rate <- ui.population.parameters
+  number.of.alpha.allocation.components <- n.stages*n.subpopulations
+  if(ui.include.designs.start.subpop.1){
+    number.of.alpha.allocation.components <- number.of.alpha.allocation.components - (n.subpopulations-1)}
+    
   if(n.arms==2){
     source(file.path(code.dir, backend.1tvc.file))
-    n.hypotheses <- n.stages*(n.arms-1)*n.subpopulations
-    ui.hazard.rate <- ui.population.parameters
-    if(ui.include.designs.start.subpop.1){
-      n.hypotheses <- n.hypotheses - (n.subpopulations-1)*(n.arms-1)
-    }
   } else if(n.arms==3){
     source(file.path(code.dir, backend.2tvc.file))
-    n.hypotheses <- n.stages*n.subpopulations
-    
-    if(ui.include.designs.start.subpop.1){
-      n.hypotheses <- n.hypotheses - (n.subpopulations-1)
-    }
   }
+  
 
   # Computes distribution of test statistics in a given scenario,
   # using canonical joint distribution
@@ -184,7 +198,6 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   colnames(ui.hazard.rate) <- 
     paste0(rep(arm.names, each=n.subpopulations),
            rep(1:n.subpopulations, n.arms))
-  
 
   osea.result <-
     sa.optimize(search.parameters=
@@ -211,8 +224,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       futility.boundaries=NULL,
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=
-                                        rep(1/n.hypotheses,
-                                            n.hypotheses),
+                                        rep(1/number.of.alpha.allocation.components,
+                                            number.of.alpha.allocation.components),
                                       total.alpha=ui.total.alpha),
                 create.object=dunnett.wrapper,
                 evaluate.object=power.penalized.weighted.ess,
@@ -232,8 +245,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
     sa.optimize(search.parameters=
                   list(n.per.arm=default.pct.of.max*
                          pmin(ui.max.size, max.possible.accrual),
-                       alpha.allocation=rep(1/n.hypotheses,
-                                            n.hypotheses)
+                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                            number.of.alpha.allocation.components)
                        ),
                 search.transforms=
                   # Cap sample size at minimum of the maximum specified size
@@ -260,7 +273,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 create.object=dunnett.wrapper,
                 evaluate.object=power.penalized.weighted.ess,
                 function.scale=default.function.scale,
-                parameter.scale=c(default.n.scale,rep(1,n.hypotheses)),
+                parameter.scale=c(default.n.scale,rep(1,number.of.alpha.allocation.components)),
                 max.iterations=default.max.iterations,
                 temperature=default.means.temperature,
                 evals.per.temp=default.evals.per.temp,
@@ -276,8 +289,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                          pmin(ui.max.duration,
                               ui.max.size/ui.accrual.yearly.rate),
                        alpha.allocation=
-                         rep(1/n.hypotheses,
-                             n.hypotheses)
+                         rep(1/number.of.alpha.allocation.components,
+                             number.of.alpha.allocation.components)
                        ),
                 search.transforms=
                   list(enrollment.period=function(x)
@@ -304,7 +317,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 create.object=dunnett.wrapper,
                 evaluate.object=power.penalized.weighted.ess,
                 function.scale=default.function.scale,
-                parameter.scale=c(default.period.scale,rep(1,n.hypotheses)),
+                parameter.scale=c(default.period.scale,rep(1,number.of.alpha.allocation.components)),
                 max.iterations=default.max.iterations,
                 temperature=default.survival.temperature,
                 evals.per.temp=default.evals.per.temp,
@@ -316,13 +329,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
 ## 2SEA 2 stage equal alpha
 if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   n.stages <- 2 # Two Stage
+  number.of.alpha.allocation.components <- n.stages*n.subpopulations
 
-  if(n.arms==2){
-    n.hypotheses <- n.stages*(n.arms-1)*n.subpopulations
-  } else if(n.arms==3){
-    n.hypotheses <- n.stages*n.subpopulations
-  }
-  
   # if(ui.optimization.target=="ESS") {
   #   Switch Objective Function and Parameters
   # }
@@ -351,8 +359,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
                                       n.simulations=default.n.simulations,
-                                      alpha.allocation=rep(1/n.hypotheses,
-                                                           n.hypotheses),
+                                      alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                                           number.of.alpha.allocation.components),
                                       total.alpha=ui.total.alpha),
                 create.object=dunnett.wrapper,
                 evaluate.object=power.penalized.weighted.ess,
@@ -368,20 +376,10 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   
 } else { # Survival Cases
   n.stages <- 2 # Single Stage
+  number.of.alpha.allocation.components <- n.stages*n.subpopulations
+  if(ui.include.designs.start.subpop.1){
+      number.of.alpha.allocation.components <- number.of.alpha.allocation.components - (n.subpopulations-1)}
 
-  if(n.arms==2){
-    n.hypotheses <- n.stages*(n.arms-1)*n.subpopulations
-    
-    if(ui.include.designs.start.subpop.1){
-      n.hypotheses <- n.hypotheses - (n.subpopulations-1)*(n.arms-1)
-    }
-  } else if(n.arms==3){
-    n.hypotheses <- n.stages*n.subpopulations
-    
-    if(ui.include.designs.start.subpop.1){
-      n.hypotheses <- n.hypotheses - (n.subpopulations-1)
-    }
-  }
   
     tsea.result <-
     sa.optimize(search.parameters=
@@ -408,8 +406,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=
-                                        rep(1/n.hypotheses,
-                                            n.hypotheses),
+                                        rep(1/number.of.alpha.allocation.components,
+                                            number.of.alpha.allocation.components),
                                       total.alpha=ui.total.alpha),
                 create.object=dunnett.wrapper,
                 evaluate.object=power.penalized.weighted.ess,
@@ -431,8 +429,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                          pmin(ui.max.size, max.possible.accrual),
                        interim.info.times=c(1/2,1),
                        futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
-                       alpha.allocation=rep(1/n.hypotheses,
-                                            n.hypotheses)
+                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                            number.of.alpha.allocation.components)
                        ),
                 search.transforms=
                   # Cap sample size at minimum of the maximum specified size
@@ -459,7 +457,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 create.object=dunnett.wrapper,
                 evaluate.object=power.penalized.weighted.ess,
                 function.scale=default.function.scale,
-                parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+n.hypotheses)),
+                parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
                 max.iterations=default.max.iterations,
                 temperature=default.means.temperature,
                 evals.per.temp=default.evals.per.temp,
@@ -477,8 +475,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                        time=c(ui.max.duration/2,ui.max.duration),
                        futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
                        alpha.allocation=
-                         rep(1/n.hypotheses,
-                             n.hypotheses)
+                         rep(1/number.of.alpha.allocation.components,
+                             number.of.alpha.allocation.components)
                   ),
                 search.transforms=
                   list(enrollment.period=function(x)
@@ -504,7 +502,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 create.object=dunnett.wrapper,
                 evaluate.object=power.penalized.weighted.ess,
                 function.scale=default.function.scale,
-                parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+n.hypotheses)),
+                parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
                 max.iterations=default.max.iterations,
                 temperature=default.survival.temperature,
                 evals.per.temp=default.evals.per.temp,
