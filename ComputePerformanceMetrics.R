@@ -90,7 +90,7 @@ compute.performance.under.single.scenario <- function(
     stopifnot((ci.level > 0 & ci.level <= 1))
     
     # check that stage.decision can be 0 only if restrict.enrollment = TRUE
-    stopifnot(restrict.enrollment | all(stage.decision > 0))
+    stopifnot((!is.null(restrict.enrollment) && restrict.enrollment) | all(stage.decision > 0))
     enrolled.sim.index <- which(stage.decision > 0)
     test.statistics <- test.statistics[enrolled.sim.index, ]
     stage.decision <- stage.decision[enrolled.sim.index]
@@ -242,7 +242,7 @@ compute.performance <- function(
 ) {
     # Hard coded modification when restrict.enrollment = TRUE
     # browser()
-    if (restrict.enrollment) {
+    if (!is.null(restrict.enrollment) && restrict.enrollment) {
         if (n.population != 2 | ncol(test.statistics) != 3) {
             stop("restrict.enrollment = TRUE only allows for 2 subpopulation 2 stage trials.")
         }

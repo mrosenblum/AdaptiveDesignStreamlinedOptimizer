@@ -762,16 +762,19 @@ dunnett.means <-
           c(mean.sub.pop.1[2] - mean.sub.pop.1[1],
             mean.sub.pop.2[2] - mean.sub.pop.2[1])
         names(true.estimand.value) <- c("Subpop.1","Subpop.2")
-        bias.variance.mse.ci <-
-          compute.performance(test.statistics,
+      } else if (n.arms==3) {
+        true.estimand.value = c(mean.sub.pop.1[2] - mean.sub.pop.1[1], mean.sub.pop.2[2] - mean.sub.pop.2[1], mean.sub.pop.1[3] - mean.sub.pop.1[1], mean.sub.pop.2[3] - mean.sub.pop.2[1])
+        names(true.estimand.value) <- c("Arm.A.Subpop.1","Arm.A.Subpop.2","Arm.B.Subpop.1","Arm.B.Subpop.2")
+      }
+      bias.variance.mse.ci <- compute.performance(test.statistics,
                               cov.var.matrix=z.parameters$cov.mat.used,
                               stage.decision=test.decisions$stage.decision,
                               information.level=z.parameters$information.vector,
                               true.estimand.value=true.estimand.value,
                               n.treatment.excluding.control=n.arms-1)
-        trial.criteria.by.scenario[[m]]$bias.variance.mse.ci <- bias.variance.mse.ci 
-        trial.criteria.by.scenario[[m]]$true.estimand.value <- true.estimand.value 
-      }
+      trial.criteria.by.scenario[[m]]$bias.variance.mse.ci <- bias.variance.mse.ci 
+      trial.criteria.by.scenario[[m]]$true.estimand.value <- true.estimand.value 
+      
       # Label distribution.of.trials by scenario
       trial.criteria.by.scenario[[m]]$distribution.of.trials <-
         data.frame(scenario=m,
@@ -897,7 +900,7 @@ dunnett.survival <-
                                  restrict.enrollment=restrict.enrollment,
                                  enrollment.period.normalized=
                                    enrollment.period/max(time))
-    
+
     analytic.n.per.stage <- per.stage.sample.sizes$analytic.n.per.stage
     total.n.per.stage <- per.stage.sample.sizes$total.n.per.stage
     
@@ -1001,7 +1004,11 @@ dunnett.survival <-
             log(hazard.rate.pop.2[1]/hazard.rate.pop.2[2])) -
           log(1/ifelse(!is.numeric(ni.margin), 1, ni.margin))
         names(true.estimand.value) <- c("Subpop.1","Subpop.2")
-        bias.variance.mse.ci <-
+      } else if (n.arms == 3) {
+         true.estimand.value <- c(log(hazard.rate.pop.1[1]/hazard.rate.pop.1[2]), log(hazard.rate.pop.2[1]/hazard.rate.pop.2[2]),log(hazard.rate.pop.1[1]/hazard.rate.pop.1[3]), log(hazard.rate.pop.2[1]/hazard.rate.pop.2[3])) - log(1/ifelse(is.null(ni.margin),1,ni.margin))
+         names(true.estimand.value) <- c("Arm.A.Subpop.1","Arm.A.Subpop.2","Arm.B.Subpop.1","Arm.B.Subpop.2")  
+      } 
+      bias.variance.mse.ci <-
           compute.performance(test.statistics,
                               cov.var.matrix=z.parameters$cov.mat.used,
                               stage.decision=test.decisions$stage.decision,
@@ -1016,7 +1023,6 @@ dunnett.survival <-
           bias.variance.mse.ci 
         trial.criteria.by.scenario[[m]]$true.estimand.value <- 
           true.estimand.value 
-      }
       
       # Label distribution.of.trials by scenario
       trial.criteria.by.scenario[[m]]$distribution.of.trials <-
@@ -1123,7 +1129,7 @@ dunnett.wrapper <- function(outcome.type, ...){
          stopifnot(length(futility.boundaries)==
                      (n.stages-1)*(n.arms-1)*n.subgroups,
                    length(alpha.allocation)==
-                     n.stages*(n.arms-1)*n.subgroups,
+                     n.stages*n.subgroups,
                    n.arms %in% 2:3,
                    n.subgroups==2,
                    n.stages<=2))
