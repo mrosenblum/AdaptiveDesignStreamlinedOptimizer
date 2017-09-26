@@ -1,0 +1,1108 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Optimizer Report - Optimization of Multi-Arm Adaptive Enrichment Trials
+% Author: Josh Betz (jbetz@jhu.edu), Tianchen Qian (qiantianchen.thu@gmail.com)
+% History:
+%  0.0 - 2016-11-16 - Active Development
+%  1.0 - 2017.09.19 - Simplify Report
+%
+% Notes: This is a program meant to read in the results of optimization and
+% present them.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Acronyms:
+%
+%     1SEA (osea): One-Stage Equal Alpha Design
+%     1SOA (osoa): One-Stage Optimized Alpha Design
+%     2SEA (tsea): Two-Stage Equal Alpha Design
+%     2SOA (tsoa): Two-Stage Optimal Alpha Design
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TeX Packages
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass{article}
+\usepackage[margin = 0.75in]{geometry}
+\usepackage{wallpaper}    % Watermark
+%\usepackage{pdflscape}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\numberwithin{table}{section}
+\numberwithin{figure}{section}
+
+\begin{document}
+
+
+
+<<Setup, echo=FALSE, warning=FALSE>>=
+
+### report format setup #############################################################
+
+w.fig <- 4
+h.fig <- 4
+
+x.axis.text.size <- 16
+y.axis.text.size <- 16
+x.axis.title.size <- 16
+y.axis.title.size <- 16
+title.size <- 20
+
+# Set global default options for chunks - Can override locally
+knitr::opts_chunk$set(echo=FALSE,
+                      message=FALSE,
+                      results='hide',
+                      fig.width=w.fig,
+                      fig.height=h.fig,
+                      fig.align="center",
+                      fig.pos="h!")
+
+neaten <- function(x, figs=2) {
+  formatC(round(x, figs), digits=figs, format="f")
+}
+
+### load R packages #############################################################
+
+library(ggplot2)
+library(gridExtra)
+library(xtable)
+library(plyr) # using ddply() to calculate performance weighted by scenarios
+
+
+### debugging parameters #############################################################
+
+
+
+
+
+### process result file #############################################################
+
+# ui.parameters <- tsoa.result$parameters
+ui.outcome.type <- ui.type.of.outcome.data
+
+n.scenarios <- nrow(ui.population.parameters)
+
+if (!("ui.n.arms" %in% ls())) {
+    ui.n.arms <- DEBUG.N.ARMS
+}
+
+n.arms <- ui.n.arms
+n.subpopulation <- 2
+n.design.types <- length(c("OSEA", "OSOA", "TSEA", "TSOA"))
+
+if ("scenario.weights" %in% names(tsoa.result$evaluate.object.parameters)) {
+    scenario.weights <- tsoa.result$evaluate.object.parameters$scenario.weights    
+} else {
+    scenario.weights <- rep(1/n.scenarios, n.scenarios)
+}
+
+if (n.arms == 3 & ui.outcome.type == "continuous") {
+    OUTCOME.DISTRIBUTION <- "Tables \\ref{tab:ui-outcome-mean} and \\ref{tab:ui-outcome-sd}"    
+} else {
+    OUTCOME.DISTRIBUTION <- "Table \\ref{tab:ui-outcome-distribution}"    
+}
+
+if (DEBUG.N.SIMULATION) {
+    n.simulation <- as.character(10000)
+}
+
+# user-inputs that are not always available
+
+NON.INFERIORITY <- ""
+MCID <- ""
+CENSORING.RATE <- ""
+
+if (ui.outcome.type == "time-to-event") {
+    NON.INFERIORITY <- ifelse(ui.time.to.event.trial.type != "non-inferiority", "\\item Superiority trial.", paste0("\\item Non-inferiority trial, with non-inferiority margin ", ui.time.to.event.non.inferiority.trial.margin, "."))
+                              
+}
+# if ("non.inferiority" %in% names(ui.parameters)) {
+#     if (ui.parameters$non.inferiority) {
+#         NON.INFERIORITY <- paste0("\\item Non-inferiority trial, with non-inferiority margin ", ui.parameters$ni.margin, ".")
+#     } else {
+#         NON.INFERIORITY <- paste0("\\item Superiority trial.")
+#     }
+# }
+
+if (("ui.mcid" %in% ls()) & (ui.mcid > 0)) {
+    MCID <- paste0("\\item Minimum clinically important difference (MCID): ", ui.mcid, ".")
+}
+
+if ("ui.time.to.event.censoring.rate" %in% ls()) {
+    CENSORING.RATE <- paste0("\\item Censoring rate: ", ui.time.to.event.censoring.rate, ".")
+}
+@
+
+
+
+
+\clearpage
+
+\title{Performance Comparison of Optimized Adaptive Enrichment Designs Versus Standard Designs}
+\maketitle
+\section{Introduction}
+
+Four optimal designs are presented in this report:
+\begin{itemize}
+    \item 1SEA: the optimal 1-stage design with equal alpha allocation to all hypotheses; 
+    \item 1SOA: the optimal 1-stage design with alpha allocation chosen by optimization;
+    \item 2SEA: the optimal 2-stage design with equal alpha allocation to all hypotheses and futility boundaries chosen by optimization;
+    \item 2SOA: the optimal 2-stage design with interim analysis timing, futility boundaries, and alpha allocation all chosen by optimization.
+\end{itemize}
+Each design was optimized to minimize the expected sample size weighted by user-supplied weights over a collection of hypothetical treatment effect scenarios, subject to user-supplied constraints on power and Type I error. See Section \ref{sec:user-supplied-parameters} for the full list of user-supplied parameters.
+
+Details of the design space we searched over and the optimization method can be found in the following papers:
+\begin{itemize}
+\item (For one treatment versus one control) Betz, Josh; Steingrimsson, Jon Arni; Qian, Tianchen; and Rosenblum, Michael. COMPARISON OF ADAPTIVE RANDOMIZED TRIAL DESIGNS FOR TIME-TO-EVENT OUTCOMES THAT EXPAND VERSUS RESTRICT ENROLLMENT CRITERIA, TO TEST NON-INFERIORITY (September 2017). Johns Hopkins University, Dept. of Biostatistics Working Papers. Working Paper 289. \url{http://biostats.bepress.com/jhubiostat/paper289}
+\item (For two treatments versus one control) Steingrimsson, Jon Arni; Betz, Joshua; Qian, Tiachen; and Rosenblum, Michael. OPTIMIZED ADAPTIVE ENRICHMENT DESIGNS FOR MULTI-ARM TRIALS: LEARNING WHICH SUBPOPULATIONS BENEFIT FROM DIFFERENT TREATMENTS (September 2017). Johns Hopkins University, Dept. of Biostatistics Working Papers. Working Paper 288. \url{http://biostats.bepress.com/jhubiostat/paper288}
+\end{itemize}
+
+
+\subsection{User-Supplied Parameters} \label{sec:user-supplied-parameters}
+
+Below is a list of user-supplied parameters.
+\begin{itemize}
+    \item Number of study arms: \Sexpr{ui.n.arms}.
+    \item Type of outcome data: \Sexpr{ui.type.of.outcome.data}.
+    \Sexpr{NON.INFERIORITY}
+    \item Subpopulation 1 proportion: \Sexpr{ui.subpopulation.1.size}.
+    \item Familywise Type I error rate: \Sexpr{ui.total.alpha}.
+    \item Maximum sample size: \Sexpr{ui.max.size}.
+    \item Maximum duration: \Sexpr{ui.max.duration}.
+    \item Enrollment rate per year (all arms combined): \Sexpr{ui.accrual.yearly.rate}.
+    \item Length of followup: \Sexpr{ui.followup.length}.
+    \item Optimization target: \Sexpr{ui.optimization.target}.
+    \Sexpr{CENSORING.RATE}
+    \Sexpr{MCID}
+    \item Incorporate precision gain: \Sexpr{ui.incorporate.precision.gain}.
+    \item Relative efficiency: \Sexpr{ui.relative.efficiency}.
+    \item Maximum Number of Stages: \Sexpr{ui.max.stages}
+    \item Maxmimum Number of Different Designs to Search Over: \Sexpr{ui.sann}.
+    \item Include Designs that Start Enrolling only Subpop 1: \Sexpr{ui.include.designs.start.subpop.1}
+    \item Distribution of outcomes assumed by the user: see \Sexpr{OUTCOME.DISTRIBUTION}.
+    \item Desired Power: see Table \ref{tab:desired-power}.
+    
+\end{itemize}
+
+
+
+<<Print_Scenarios, results='asis'>>=
+
+if (ui.outcome.type == "continuous") {
+    if (n.arms == 2) {
+        table.cap <- "User-supplied outcome mean and standard deviation (SD) under each scenario. In column names, ``trt'' denotes the treatment arm, and ``con'' denotes the control arm; numbers 1 and 2 indicate the corresponding subpopulation."
+        table.scap <- "User-supplied outcome distribution under each scenario."
+        print(xtable(data.frame(Scenario = 1:n.scenarios,
+                          Weight = scenario.weights,
+                          ui.population.parameters),
+               digits=c(0, 0, 2, rep(2, n.arms * n.subpopulation * 1.5)),
+               caption=c(table.cap, table.scap),
+               label = "tab:ui-outcome-distribution"),
+        include.rownames=FALSE)
+        
+    } else if (n.arms == 3) {
+        # put mean and standard deviation in separate tables.
+        ui.population.parameters.df <- data.frame(ui.population.parameters)
+        mean.table <- ui.population.parameters.df[, grepl("*mean", names(ui.population.parameters.df))]
+        names(mean.table) <- sub("_mean", "", names(mean.table))
+        
+        table.cap <- "User-supplied outcome mean under each scenario. In column names, ``S1'' and ``S2'' indicate subpopulation 1 and 2."
+        table.scap <- "User-supplied outcome mean under each scenario."
+        print(xtable(data.frame(Scenario = 1:n.scenarios,
+                          Weight = scenario.weights,
+                          mean.table),
+               digits=c(0, 0, 2, rep(2, n.arms * n.subpopulation)),
+               caption=c(table.cap, table.scap),
+               label = "tab:ui-outcome-mean"),
+        include.rownames=FALSE)
+        
+        sd.table <- ui.population.parameters.df[, grepl("*sd", names(ui.population.parameters.df))]
+        names(sd.table) <- sub("_sd", "", names(sd.table))
+        
+        table.cap <- "User-supplied standard deviation (SD) under each scenario. In column names, ``S1'' and ``S2'' indicate subpopulation 1 and 2."
+        table.scap <- "User-supplied outcome standard deviation under each scenario."
+        print(xtable(data.frame(Scenario = 1:n.scenarios,
+                          sd.table),
+               digits=c(0, 2, rep(2, n.arms * n.subpopulation)),
+               caption=c(table.cap, table.scap),
+               label = "tab:ui-outcome-sd"),
+        include.rownames=FALSE)
+    }
+} else if (ui.outcome.type == "binary") {
+    
+    ui.population.parameters.df <- data.frame(ui.population.parameters)
+    mean.table <- ui.population.parameters.df
+    names(mean.table) <- sub("Mean_", "", names(mean.table))
+    table.cap <- "User-supplied success probabilities of outcome under each scenario. In column names, ``trt'' denotes the treatment arm, and ``con'' denotes the control arm; numbers 1 and 2 indicate the corresponding subpopulation."
+    table.scap <- "User-supplied outcome distribution under each scenario."
+    print(xtable(data.frame(Scenario = 1:n.scenarios,
+                      Weight = scenario.weights,
+                      mean.table),
+           digits=c(0, 0, 2, rep(2, n.arms * n.subpopulation)),
+           caption=c(table.cap, table.scap),
+           label = "tab:ui-outcome-distribution"),
+    include.rownames=FALSE)
+    
+} else if (ui.outcome.type == "time-to-event") {
+    
+    table.cap <- "User-supplied outcome hazard rate (HR) under each scenario. In column names, ``trt'' denotes the treatment arm, and ``con'' denotes the control arm; numbers 1 and 2 indicate the corresponding subpopulation."
+    table.scap <- "User-supplied outcome distribution under each scenario."
+    print(xtable(data.frame(Scenario = 1:n.scenarios,
+                      Weight = scenario.weights,
+                      ui.population.parameters),
+           digits=c(0, 0, 2, rep(2, n.arms * n.subpopulation)),
+           caption=c(table.cap, table.scap),
+           label = "tab:ui-outcome-distribution"),
+    include.rownames=FALSE)
+}
+
+@
+
+
+
+<<Power_constraints, results='asis'>>=
+
+table.cap <- "User-supplied desired power. In column names, numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "User-supplied desired power."
+print(xtable(data.frame(ui.desired.power),
+       caption=c(table.cap, table.scap),
+       label = "tab:desired-power"),
+include.rownames=FALSE)
+@
+
+
+
+
+\clearpage
+\section{1SEA design}
+
+\subsection{Specification of the 1SEA design}
+
+Here we give the specification of the optimal 1SEA design.
+
+Table \ref{tab:1sea-n-per-stage} gives sample size and calendar time for each stage.
+
+Table \ref{tab:1sea-alpha-allocation} gives the alpha allocation.
+
+% Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
+
+<<N_per_stage_1SEA, results='asis'>>=
+
+my.table <- data.frame(osea.result$optima$per.stage.sample.sizes$total.n.per.stage)
+my.table$Accrual.year <- osea.result$optima$per.stage.sample.sizes$accrual.years
+
+table.cap <- "Total sample size per stage for the 1SEA design. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "Total sample size per stage for the 1SEA design."
+print(xtable(data.frame(Stage = 1:nrow(my.table),
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1sea-n-per-stage",
+             digits = c(0, 0, rep(0, n.arms * n.subpopulation), 2)),
+      include.rownames=FALSE)
+@
+
+<<Alpha_allocation_1SEA, results='asis'>>=
+alpha.allocation <- as.data.frame(matrix(osea.result$parameters$alpha.allocation * ui.total.alpha, ncol = n.subpopulation, byrow = T))
+names(alpha.allocation) <- paste0("Subpop", 1:n.subpopulation)
+table.cap <- "Alpha allocation for the 1SEA design."
+table.scap <- "Alpha allocation for the 1SEA design."
+print(xtable(data.frame(Stage = 1:nrow(alpha.allocation),
+                  alpha.allocation),
+       digits=c(0, 0, rep(4, n.subpopulation)),
+       caption=c(table.cap, table.scap),
+       label = "tab:1sea-alpha-allocation"),
+include.rownames=FALSE)
+@
+
+
+\subsection{Performance of the 1SEA design}
+
+% All results are averaged over \Sexpr{n.simulation} simulations.
+
+Table \ref{tab:1sea-power} lists the empirical power.
+
+Table \ref{tab:1sea-fwer} lists the empirical familywise Type I error (FWER).
+
+Table \ref{tab:1sea-typeIerror} lists the empirical Type I error.
+
+Table \ref{tab:1sea-ess} lists the expected sample size.
+
+Table \ref{tab:1sea-duration} lists the expected duration.
+
+Table \ref{tab:1sea-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
+
+
+<<Power_1SEA, results='asis'>>=
+
+my.table <- osea.result$optima$empirical.power
+colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
+
+table.cap <- "Empirical power for the 1SEA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to the corresponding null hypothesis being true in the given scenario."
+table.scap <- "Empirical power for the 1SEA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1sea-power", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Fwer_1SEA, results='asis'>>=
+
+my.table <- osea.result$optima$fwer
+names(my.table) <- "Familywise Type I error rate"
+
+table.cap <- "Empirical FWER for the 1SEA design. NA indicates ``not applicable'' due to all null hypothesis being false in the given scenario."
+table.scap <- "Empirical FWER for the 1SEA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1sea-fwer", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<TypeIerror_1SEA, results='asis'>>=
+
+my.table <- osea.result$optima$type.1.error
+
+colnames(my.table) <- paste("TypeIerror", colnames(my.table), sep = "_")
+
+table.cap <- "Empirical Type I error for the 1SEA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns.  NA indicates ``not applicable'' due to corresponding null hypothesis being false in the given scenario."
+table.scap <- "Empirical Type I error for the 1SEA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1sea-typeIerror", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<ESS_1SEA, results='asis'>>=
+
+my.table <- c(osea.result$optima$ess, sum(osea.result$optima$ess * scenario.weights))
+
+table.cap <- "Expected sample size (ESS) for the 1SEA design."
+table.scap <- "Expected sample size for the 1SEA design."
+print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
+                        ESS = my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1sea-ess", digits=0),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Duration_1SEA, results='asis'>>=
+
+my.table <- c(osea.result$optima$duration, sum(osea.result$optima$duration * scenario.weights))
+
+table.cap <- "Expected duation for the 1SEA design."
+table.scap <- "Expected duration for the 1SEA design."
+print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
+                        Duration = my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1sea-duration", digits=2),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Performance_1SEA, results='asis'>>=
+
+my.table <- c()
+for (i.scenario in 1:n.scenarios) {
+    for (i.arm.pop in 1:((n.arms-1)*n.subpopulation)) {
+        my.table <- rbind(my.table, unlist(osea.result$optima$bias.variance.mse.ci[i.scenario, i.arm.pop]))
+    }
+}
+my.table <- data.frame(my.table)
+names(my.table) <- names(osea.result$optima$bias.variance.mse.ci[1,1][[1]])
+my.table$scenario <- rep(1:n.scenarios, each = (n.arms-1)*n.subpopulation)
+my.table$subpopulation <- rep(1:n.subpopulation, n.scenarios * (n.arms-1))
+my.table$treatment <- rep(rep(LETTERS[1:(n.arms-1)], each = n.subpopulation), n.scenarios)
+
+my.table <- with(my.table,
+                 data.frame(Scenario = scenario,
+                            Treatment = treatment, Subpop = subpopulation,
+                            Bias = bias, Var = variance, MSE = mse,
+                            CI.COVERAGE = ci.coverage,
+                            CI.INFLATION = ci.inflation.factor))
+if (n.arms <= 2) {
+    my.table$Treatment <- NULL
+}
+
+table.cap <- "Estimator and Confidence Interval Performance for the 1SEA design."
+if (ui.outcome.type == "time-to-event") {
+    table.cap <- paste(table.cap, "Bias, variance and MSE are calculated for odds ratio scale.")
+}
+table.scap <- "Estimator and Confidence Interval Performance for the 1SEA design."
+if ("Treatment" %in% names(my.table)) {
+    table.cap <- paste(table.cap, "Column ``Treatment'' indicates the treatment effect between the mentioned treatment and the control arm C.")
+}
+
+print(xtable(my.table,
+             caption=c(table.cap, table.scap), 
+             label = "tab:1sea-performance", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+
+
+
+
+
+
+
+
+
+\clearpage
+\section{1SOA design}
+
+\subsection{Specification of the 1SOA design}
+
+Here we give the specification of the optimal 1SOA design.
+
+Table \ref{tab:1soa-n-per-stage} gives sample size and calendar time for each stage.
+
+Table \ref{tab:1soa-alpha-allocation} gives the alpha allocation.
+
+% Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
+
+<<N_per_stage_1SOA, results='asis'>>=
+
+my.table <- data.frame(osoa.result$optima$per.stage.sample.sizes$total.n.per.stage)
+my.table$Accrual.year <- osoa.result$optima$per.stage.sample.sizes$accrual.years
+
+table.cap <- "Total sample size per stage for the 1SOA design. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "Total sample size per stage for the 1SOA design."
+print(xtable(data.frame(Stage = 1:nrow(my.table),
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1soa-n-per-stage",
+             digits = c(0, 0, rep(0, n.arms * n.subpopulation), 2)),
+      include.rownames=FALSE)
+@
+
+<<Alpha_allocation_1SOA, results='asis'>>=
+alpha.allocation <- as.data.frame(matrix(osoa.result$parameters$alpha.allocation * ui.total.alpha, ncol = n.subpopulation, byrow = T))
+names(alpha.allocation) <- paste0("Subpop", 1:n.subpopulation)
+table.cap <- "Alpha allocation for the 1SOA design."
+table.scap <- "Alpha allocation for the 1SOA design."
+print(xtable(data.frame(Stage = 1:nrow(alpha.allocation),
+                  alpha.allocation),
+       digits=c(0, 0, rep(4, n.subpopulation)),
+       caption=c(table.cap, table.scap),
+       label = "tab:1soa-alpha-allocation"),
+include.rownames=FALSE)
+@
+
+
+\subsection{Performance of the 1SOA design}
+
+% All results are averaged over \Sexpr{n.simulation} simulations.
+
+Table \ref{tab:1soa-power} lists the empirical power.
+
+Table \ref{tab:1soa-fwer} lists the empirical familywise Type I error (FWER).
+
+Table \ref{tab:1soa-typeIerror} lists the empirical Type I error.
+
+Table \ref{tab:1soa-ess} lists the expected sample size.
+
+Table \ref{tab:1soa-duration} lists the expected duration.
+
+Table \ref{tab:1soa-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
+
+<<Power_1SOA, results='asis'>>=
+
+my.table <- osoa.result$optima$empirical.power
+colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
+
+table.cap <- "Empirical power for the 1SOA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to the corresponding null hypothesis being true in the given scenario."
+table.scap <- "Empirical power for the 1SOA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1soa-power", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Fwer_1SOA, results='asis'>>=
+
+my.table <- osoa.result$optima$fwer
+names(my.table) <- "Familywise Type I error rate"
+
+table.cap <- "Empirical FWER for the 1SOA design. NA indicates ``not applicable'' due to all null hypothesis being false in the given scenario."
+table.scap <- "Empirical FWER for the 1SOA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1soa-fwer", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<TypeIerror_1SOA, results='asis'>>=
+
+my.table <- osoa.result$optima$type.1.error
+
+colnames(my.table) <- paste("TypeIerror", colnames(my.table), sep = "_")
+
+table.cap <- "Empirical Type I error for the 1SOA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to corresponding null hypothesis being false in the given scenario."
+table.scap <- "Empirical Type I error for the 1SOA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1soa-typeIerror", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<ESS_1SOA, results='asis'>>=
+
+my.table <- c(osoa.result$optima$ess, sum(osoa.result$optima$ess * scenario.weights))
+
+table.cap <- "Expected sample size (ESS) for the 1SOA design."
+table.scap <- "Expected sample size for the 1SOA design."
+print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
+                        ESS = my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1soa-ess", digits=0),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Duration_1SOA, results='asis'>>=
+
+my.table <- c(osoa.result$optima$duration, sum(osoa.result$optima$duration * scenario.weights))
+
+table.cap <- "Expected duation for the 1SOA design."
+table.scap <- "Expected duration for the 1SOA design."
+print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
+                        Duration = my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:1soa-duration", digits=2),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Performance_1SOA, results='asis'>>=
+
+my.table <- c()
+for (i.scenario in 1:n.scenarios) {
+    for (i.arm.pop in 1:((n.arms-1)*n.subpopulation)) {
+        my.table <- rbind(my.table, unlist(osoa.result$optima$bias.variance.mse.ci[i.scenario, i.arm.pop]))
+    }
+}
+my.table <- data.frame(my.table)
+names(my.table) <- names(osoa.result$optima$bias.variance.mse.ci[1,1][[1]])
+my.table$scenario <- rep(1:n.scenarios, each = (n.arms-1)*n.subpopulation)
+my.table$subpopulation <- rep(1:n.subpopulation, n.scenarios * (n.arms-1))
+my.table$treatment <- rep(rep(LETTERS[1:(n.arms-1)], each = n.subpopulation), n.scenarios)
+
+my.table <- with(my.table,
+                 data.frame(Scenario = scenario,
+                            Treatment = treatment, Subpop = subpopulation,
+                            Bias = bias, Var = variance, MSE = mse,
+                            CI.COVERAGE = ci.coverage,
+                            CI.INFLATION = ci.inflation.factor))
+if (n.arms <= 2) {
+    my.table$Treatment <- NULL
+}
+
+table.cap <- "Estimator and Confidence Interval Performance for the 1SOA design."
+if (ui.outcome.type == "time-to-event") {
+    table.cap <- paste(table.cap, "Bias, variance and MSE are calculated for odds ratio scale.")
+}
+table.scap <- "Estimator and Confidence Interval Performance for the 1SOA design."
+if ("Treatment" %in% names(my.table)) {
+    table.cap <- paste(table.cap, "Column ``Treatment'' indicates the treatment effect between the mentioned treatment and the control arm C.")
+}
+
+print(xtable(my.table,
+             caption=c(table.cap, table.scap), 
+             label = "tab:1soa-performance", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+
+
+
+
+
+
+
+\clearpage
+\section{2SEA design}
+
+\subsection{Specification of the 2SEA design}
+
+Here we give the specification of the optimal 2SEA design.
+
+Table \ref{tab:2sea-n-per-stage} gives sample size and calendar time for each stage.
+
+Table \ref{tab:2sea-alpha-allocation} gives the alpha allocation.
+
+% Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
+
+<<N_per_stage_2SEA, results='asis'>>=
+
+my.table <- data.frame(tsea.result$optima$per.stage.sample.sizes$total.n.per.stage)
+my.table$Accrual.year <- tsea.result$optima$per.stage.sample.sizes$accrual.years
+
+table.cap <- "Total sample size per stage for the 2SEA design. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "Total sample size per stage for the 2SEA design."
+print(xtable(data.frame(Stage = 1:nrow(my.table),
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2sea-n-per-stage",
+             digits = c(0, 0, rep(0, n.arms * n.subpopulation), 2)),
+      include.rownames=FALSE)
+@
+
+<<Alpha_allocation_2SEA, results='asis'>>=
+alpha.allocation <- as.data.frame(matrix(tsea.result$parameters$alpha.allocation * ui.total.alpha, ncol = n.subpopulation, byrow = T))
+names(alpha.allocation) <- paste0("Subpop", 1:n.subpopulation)
+table.cap <- "Alpha allocation for the 2SEA design."
+table.scap <- "Alpha allocation for the 2SEA design."
+print(xtable(data.frame(Stage = 1:nrow(alpha.allocation),
+                  alpha.allocation),
+       digits=c(0, 0, rep(4, n.subpopulation)),
+       caption=c(table.cap, table.scap),
+       label = "tab:2sea-alpha-allocation"),
+include.rownames=FALSE)
+@
+
+
+\subsection{Performance of the 2SEA design}
+
+% All results are averaged over \Sexpr{n.simulation} simulations.
+
+Table \ref{tab:2sea-power} lists the empirical power.
+
+Table \ref{tab:2sea-fwer} lists the empirical familywise Type I error (FWER).
+
+Table \ref{tab:2sea-typeIerror} lists the empirical Type I error.
+
+Table \ref{tab:2sea-ess} lists the expected sample size.
+
+Table \ref{tab:2sea-duration} lists the expected duration.
+
+Table \ref{tab:2sea-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
+
+Figure \ref{fig:Boxplot_ss_duration_2SEA} gives the distribution of trial sample size and duration. Note that the x-axis scale is not linear, because sample sizes and durations are clustered at specific values (depending on when the trial stops).
+
+<<Power_2SEA, results='asis'>>=
+
+my.table <- tsea.result$optima$empirical.power
+colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
+
+table.cap <- "Empirical power for the 2SEA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to the corresponding null hypothesis being true in the given scenario."
+table.scap <- "Empirical power for the 2SEA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2sea-power", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Fwer_2SEA, results='asis'>>=
+
+my.table <- tsea.result$optima$fwer
+names(my.table) <- "Familywise Type I error rate"
+
+table.cap <- "Empirical FWER for the 2SEA design. NA indicates ``not applicable'' due to all null hypothesis being false in the given scenario."
+table.scap <- "Empirical FWER for the 2SEA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2sea-fwer", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<TypeIerror_2SEA, results='asis'>>=
+
+my.table <- tsea.result$optima$type.1.error
+
+colnames(my.table) <- paste("TypeIerror", colnames(my.table), sep = "_")
+
+table.cap <- "Empirical Type I error for the 2SEA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to corresponding null hypothesis being false in the given scenario."
+table.scap <- "Empirical Type I error for the 2SEA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2sea-typeIerror", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<ESS_2SEA, results='asis'>>=
+
+my.table <- c(tsea.result$optima$ess, sum(tsea.result$optima$ess * scenario.weights))
+
+table.cap <- "Expected sample size (ESS) for the 2SEA design."
+table.scap <- "Expected sample size for the 2SEA design."
+print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
+                        ESS = my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2sea-ess", digits=0),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Duration_2SEA, results='asis'>>=
+
+my.table <- c(tsea.result$optima$duration, sum(tsea.result$optima$duration * scenario.weights))
+
+table.cap <- "Expected duation for the 2SEA design."
+table.scap <- "Expected duration for the 2SEA design."
+print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
+                        Duration = my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2sea-duration", digits=2),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Performance_2SEA, results='asis'>>=
+my.table <- c()
+for (i.scenario in 1:n.scenarios) {
+    for (i.arm.pop in 1:((n.arms-1)*n.subpopulation)) {
+        my.table <- rbind(my.table, unlist(tsea.result$optima$bias.variance.mse.ci[i.scenario, i.arm.pop]))
+    }
+}
+my.table <- data.frame(my.table)
+names(my.table) <- names(tsea.result$optima$bias.variance.mse.ci[1,1][[1]])
+my.table$scenario <- rep(1:n.scenarios, each = (n.arms-1)*n.subpopulation)
+my.table$subpopulation <- rep(1:n.subpopulation, n.scenarios * (n.arms-1))
+my.table$treatment <- rep(rep(LETTERS[1:(n.arms-1)], each = n.subpopulation), n.scenarios)
+
+my.table <- with(my.table,
+                 data.frame(Scenario = scenario,
+                            Treatment = treatment, Subpop = subpopulation,
+                            Bias = bias, Var = variance, MSE = mse,
+                            CI.COVERAGE = ci.coverage,
+                            CI.INFLATION = ci.inflation.factor))
+if (n.arms <= 2) {
+    my.table$Treatment <- NULL
+}
+
+table.cap <- "Estimator and Confidence Interval Performance for the 2SEA design."
+if (ui.outcome.type == "time-to-event") {
+    table.cap <- paste(table.cap, "Bias, variance and MSE are calculated for odds ratio scale.")
+}
+table.scap <- "Estimator and Confidence Interval Performance for the 2SEA design."
+if ("Treatment" %in% names(my.table)) {
+    table.cap <- paste(table.cap, "Column ``Treatment'' indicates the treatment effect between the mentioned treatment and the control arm C.")
+}
+
+print(xtable(my.table,
+             caption=c(table.cap, table.scap), 
+             label = "tab:2sea-performance", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Boxplot_ss_duration_processing_2SEA, results='asis'>>=
+
+distribution.of.trials <- tsea.result$optima$distribution.of.trials
+distribution.of.trials[is.na(distribution.of.trials)] <- 0
+
+# For some scenarios, different stopping stage correspond to the same sample.size and duration,
+# so we pool those together in order to get correct bar plot.
+plot.table.ss <- aggregate(distribution.of.trials$proportion, by = list(distribution.of.trials$scenario, distribution.of.trials$sample.size), FUN = sum)
+names(plot.table.ss) <- c("scenario", "sample.size", "proportion")
+
+plot.table.duration <- aggregate(distribution.of.trials$proportion, by = list(distribution.of.trials$scenario, distribution.of.trials$duration), FUN = sum)
+names(plot.table.duration) <- c("scenario", "duration", "proportion")
+
+
+# distribution.of.trials.long <- data.frame(scenario = rep(distribution.of.trials$scenario, distribution.of.trials$frequency),
+#                                           sample.size = rep(distribution.of.trials$sample.size, distribution.of.trials$frequency),
+#                                           duration = rep(distribution.of.trials$duration, distribution.of.trials$frequency))
+
+tsea.bar.ss <- 
+  ggplot(aes(y = proportion, x = factor(sample.size),
+             fill = factor(scenario)),
+         data = plot.table.ss) +
+  geom_bar(stat='identity', position="dodge") +
+  theme_bw() + ylab("") + xlab("Sample Size") +
+  ylab("Probability") +
+  scale_fill_discrete(name = "Scenario") +
+  labs(title="2SEA design") +
+  theme(axis.text.x=element_text(angle = 45, vjust = 1, hjust=1,
+                                 size=x.axis.text.size),
+        axis.text.y=element_text(size=y.axis.text.size),
+        axis.title.x=element_text(size=x.axis.title.size),
+        axis.title.y=element_text(size=y.axis.title.size),
+        plot.title=element_text(size=title.size))
+
+tsea.bar.duration <- 
+  ggplot(aes(y = proportion, x = factor(neaten(duration, 2)),
+             fill = factor(scenario)),
+         data = plot.table.duration) +
+  geom_bar(stat='identity', position="dodge") +
+  theme_bw() + ylab("") + xlab("Duration") +
+  ylab("Probability") +
+  scale_fill_discrete(name = "Scenario") +
+  labs(title="2SEA design") +
+  theme(axis.text.x=element_text(angle = 45, vjust = 1, hjust=1,
+                                 size=x.axis.text.size),
+        axis.text.y=element_text(size=y.axis.text.size),
+        axis.title.x=element_text(size=x.axis.title.size),
+        axis.title.y=element_text(size=y.axis.title.size),
+        plot.title=element_text(size=title.size))
+
+tsea.bar.cap <- "Distribution of sample size and duration for 2SEA design under all scenarios. Note that the x-axis scale is not linear, because sample sizes and durations are clustered at specific values (depending on when the trial stops)."
+
+tsea.bar.scap <- "Distribution of sample size and duration for 2SEA design."
+@
+
+<<Boxplot_ss_duration_2SEA, fig.width = 2*w.fig, fig.cap = tsea.bar.cap, fig.scap = tsea.bar.scap, fig.lp = "fig:">>=
+grid.arrange(tsea.bar.ss, tsea.bar.duration, ncol=2)
+@
+
+
+
+
+
+
+\clearpage
+\section{2SOA design}
+
+\subsection{Specification of the 2SOA design}
+
+Here we give the specification of the optimal 2SOA design.
+
+Table \ref{tab:2soa-n-per-stage} gives sample size and calendar time for each stage.
+
+Table \ref{tab:2soa-alpha-allocation} gives the alpha allocation.
+
+% Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
+
+<<N_per_stage_2SOA, results='asis'>>=
+
+my.table <- data.frame(tsoa.result$optima$per.stage.sample.sizes$total.n.per.stage)
+my.table$Accrual.year <- tsoa.result$optima$per.stage.sample.sizes$accrual.years
+
+table.cap <- "Total sample size per stage for the 2SOA design. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "Total sample size per stage for the 2SOA design."
+print(xtable(data.frame(Stage = 1:nrow(my.table),
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2soa-n-per-stage",
+             digits = c(0, 0, rep(0, n.arms * n.subpopulation), 2)),
+      include.rownames=FALSE)
+@
+
+<<Alpha_allocation_2SOA, results='asis'>>=
+alpha.allocation <- as.data.frame(matrix(tsoa.result$parameters$alpha.allocation * ui.total.alpha, ncol = n.subpopulation, byrow = T))
+names(alpha.allocation) <- paste0("Subpop", 1:n.subpopulation)
+table.cap <- "Alpha allocation for the 2SOA design."
+table.scap <- "Alpha allocation for the 2SOA design."
+print(xtable(data.frame(Stage = 1:nrow(alpha.allocation),
+                  alpha.allocation),
+       digits=c(0, 0, rep(4, n.subpopulation)),
+       caption=c(table.cap, table.scap),
+       label = "tab:2soa-alpha-allocation"),
+include.rownames=FALSE)
+@
+
+
+\subsection{Performance of the 2SOA design}
+
+% All results are averaged over \Sexpr{n.simulation} simulations.
+
+Table \ref{tab:2soa-power} lists the empirical power.
+
+Table \ref{tab:2soa-fwer} lists the empirical familywise Type I error (FWER).
+
+Table \ref{tab:2soa-typeIerror} lists the empirical Type I error.
+
+Table \ref{tab:2soa-ess} lists the expected sample size.
+
+Table \ref{tab:2soa-duration} lists the expected duration.
+
+Table \ref{tab:2soa-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
+
+Figure \ref{fig:Boxplot_ss_duration_2SOA} gives the distribution of trial sample size and duration. Note that the x-axis scale is not linear, because sample sizes and durations are clustered at specific values (depending on when the trial stops).
+
+<<Power_2SOA, results='asis'>>=
+
+my.table <- tsoa.result$optima$empirical.power
+colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
+
+table.cap <- "Empirical power for the 2SOA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to the corresponding null hypothesis being true in the given scenario."
+table.scap <- "Empirical power for the 2SOA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2soa-power", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Fwer_2SOA, results='asis'>>=
+
+my.table <- tsoa.result$optima$fwer
+names(my.table) <- "Familywise Type I error rate"
+
+table.cap <- "Empirical FWER for the 2SOA design. NA indicates ``not applicable'' due to all null hypothesis being false in the given scenario."
+table.scap <- "Empirical FWER for the 2SOA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2soa-fwer", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<TypeIerror_2SOA, results='asis'>>=
+
+my.table <- tsoa.result$optima$type.1.error
+
+colnames(my.table) <- paste("TypeIerror", colnames(my.table), sep = "_")
+
+table.cap <- "Empirical Type I error for the 2SOA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to corresponding null hypothesis being false in the given scenario."
+table.scap <- "Empirical Type I error for the 2SOA design."
+print(xtable(data.frame(Scenario = 1:n.scenarios,
+                        my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2soa-typeIerror", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<ESS_2SOA, results='asis'>>=
+
+my.table <- c(tsoa.result$optima$ess, sum(tsoa.result$optima$ess * scenario.weights))
+
+table.cap <- "Expected sample size (ESS) for the 2SOA design."
+table.scap <- "Expected sample size for the 2SOA design."
+print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
+                        ESS = my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2soa-ess", digits=0),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Duration_2SOA, results='asis'>>=
+
+my.table <- c(tsoa.result$optima$duration, sum(tsoa.result$optima$duration * scenario.weights))
+
+table.cap <- "Expected duation for the 2SOA design."
+table.scap <- "Expected duration for the 2SOA design."
+print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
+                        Duration = my.table),
+             caption=c(table.cap, table.scap), 
+             label = "tab:2soa-duration", digits=2),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Performance_2SOA, results='asis'>>=
+my.table <- c()
+for (i.scenario in 1:n.scenarios) {
+    for (i.arm.pop in 1:((n.arms-1)*n.subpopulation)) {
+        my.table <- rbind(my.table, unlist(tsoa.result$optima$bias.variance.mse.ci[i.scenario, i.arm.pop]))
+    }
+}
+my.table <- data.frame(my.table)
+names(my.table) <- names(tsoa.result$optima$bias.variance.mse.ci[1,1][[1]])
+my.table$scenario <- rep(1:n.scenarios, each = (n.arms-1)*n.subpopulation)
+my.table$subpopulation <- rep(1:n.subpopulation, n.scenarios * (n.arms-1))
+my.table$treatment <- rep(rep(LETTERS[1:(n.arms-1)], each = n.subpopulation), n.scenarios)
+
+my.table <- with(my.table,
+                 data.frame(Scenario = scenario,
+                            Treatment = treatment, Subpop = subpopulation,
+                            Bias = bias, Var = variance, MSE = mse,
+                            CI.COVERAGE = ci.coverage,
+                            CI.INFLATION = ci.inflation.factor))
+if (n.arms <= 2) {
+    my.table$Treatment <- NULL
+}
+
+table.cap <- "Estimator and Confidence Interval Performance for the 2SOA design."
+if (ui.outcome.type == "time-to-event") {
+    table.cap <- paste(table.cap, "Bias, variance and MSE are calculated for odds ratio scale.")
+}
+table.scap <- "Estimator and Confidence Interval Performance for the 2SOA design."
+if ("Treatment" %in% names(my.table)) {
+    table.cap <- paste(table.cap, "Column ``Treatment'' indicates the treatment effect between the mentioned treatment and the control arm C.")
+}
+
+print(xtable(my.table,
+             caption=c(table.cap, table.scap), 
+             label = "tab:2soa-performance", digits=3),
+      include.rownames=FALSE, NA.string = "NA")
+@
+
+<<Boxplot_ss_duration_processing_2SOA, results='asis'>>=
+
+distribution.of.trials <- tsoa.result$optima$distribution.of.trials
+distribution.of.trials[is.na(distribution.of.trials)] <- 0
+
+# For some scenarios, different stopping stage correspond to the same sample.size and duration,
+# so we pool those together in order to get correct bar plot.
+plot.table.ss <- aggregate(distribution.of.trials$proportion, by = list(distribution.of.trials$scenario, distribution.of.trials$sample.size), FUN = sum)
+names(plot.table.ss) <- c("scenario", "sample.size", "proportion")
+
+plot.table.duration <- aggregate(distribution.of.trials$proportion, by = list(distribution.of.trials$scenario, distribution.of.trials$duration), FUN = sum)
+names(plot.table.duration) <- c("scenario", "duration", "proportion")
+
+# distribution.of.trials.long <- data.frame(scenario = rep(distribution.of.trials$scenario, distribution.of.trials$frequency),
+#                                           sample.size = rep(distribution.of.trials$sample.size, distribution.of.trials$frequency),
+#                                           duration = rep(distribution.of.trials$duration, distribution.of.trials$frequency))
+
+tsoa.bar.ss <- 
+  ggplot(aes(y = proportion, x = factor(sample.size),
+             fill = factor(scenario)),
+         data = plot.table.ss) +
+  geom_bar(stat='identity', position="dodge") +
+  theme_bw() + ylab("") + xlab("Sample Size") +
+  ylab("Probability") +
+  scale_fill_discrete(name = "Scenario") +
+  labs(title="2SOA design") +
+  theme(axis.text.x=element_text(angle = 45, vjust = 1, hjust=1,
+                                 size=x.axis.text.size),
+        axis.text.y=element_text(size=y.axis.text.size),
+        axis.title.x=element_text(size=x.axis.title.size),
+        axis.title.y=element_text(size=y.axis.title.size),
+        plot.title=element_text(size=title.size))
+
+tsoa.bar.duration <- 
+  ggplot(aes(y = proportion, x = factor(neaten(duration, 2)),
+             fill = factor(scenario)),
+         data = plot.table.duration) +
+  geom_bar(stat='identity', position="dodge") +
+  theme_bw() + ylab("") + xlab("Duration") +
+  ylab("Probability") +
+  scale_fill_discrete(name = "Scenario") +
+  labs(title="2SOA design") +
+  theme(axis.text.x=element_text(angle = 45, vjust = 1, hjust=1,
+                                 size=x.axis.text.size),
+        axis.text.y=element_text(size=y.axis.text.size),
+        axis.title.x=element_text(size=x.axis.title.size),
+        axis.title.y=element_text(size=y.axis.title.size),
+        plot.title=element_text(size=title.size))
+
+tsoa.bar.cap <- "Distribution of sample size and duration for 2SOA design under all scenarios. Note that the x-axis scale is not linear, because sample sizes and durations are clustered at specific values (depending on when the trial stops)."
+
+tsoa.bar.scap <- "Distribution of sample size and duration for 2SOA design."
+@
+
+<<Boxplot_ss_duration_2SOA, fig.width = 2*w.fig, fig.cap = tsoa.bar.cap, fig.scap = tsoa.bar.scap, fig.lp = "fig:">>=
+grid.arrange(tsoa.bar.ss, tsoa.bar.duration, ncol=2)
+@
+
+
+
+\clearpage
+\section{Glossary}
+
+\begin{itemize}
+    \item 1SEA: the optimal 1-stage design with equal alpha allocation to all hypotheses; 
+    \item 1SOA: the optimal 1-stage design with alpha allocation chosen by optimization;
+    \item 2SEA: the optimal 2-stage design with equal alpha allocation to all hypotheses and futility boundaries chosen by optimization;
+    \item 2SOA: the optimal 2-stage design with interim analysis timing, futility boundaries, and alpha allocation all chosen by optimization.
+    \item A, B, C: treatment arm A, B; control arm C.
+    \item A1: treatment arm A and subpopulation 1. Similar for C1. 
+    \item Bias: bias of the estimator at the end of trial.
+    \item CI.COVERAGE: confidence interval coverage, which is the coverage of a nominal 95\% confidence interval centered at the estimator at the end of trial, obtained by normal approximation.
+    \item CI.INFLATION: confidence interval inflation factor, which is the smallest positive number $\gamma$ such that the confidence interval has exact 95\% coverage if the interval is inflated by $\gamma$.
+    \item ESS: expected sample size.
+    \item FWER: familywise error rate.
+    \item HR: hazard rate.
+    \item MSE: mean squared error of the estimator at the end of trial.
+    \item Scenario: user-supplied outcome distribution under all treatment and subpopulation combinations.
+    \item SD: standard deviation.
+    \item Subpop: subpopulation.
+    \item Var: variance of the estimator at the end of trial.
+\end{itemize}
+
+
+
+\end{document}

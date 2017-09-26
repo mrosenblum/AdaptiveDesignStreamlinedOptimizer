@@ -5,6 +5,7 @@
 
 ### Fixed Parameters ###########################################################
 # Default Parameter Values - ## CONFIRM ## That they are reasonable
+library(knitr)
 default.pct.of.max <- 0.8 # Start at 80% of max sample size/enrollment period
 
 min.n.per.arm <- 25       # For Continuous/Binary Outcomes
@@ -40,7 +41,7 @@ source(file.path(code.dir, binary.search.file))
 
 # TWO ARM EXAMPLES
 # Continuous Example
-load("michael_09252017_1335.rda"); ui.n.arms <- 2;
+#load("michael_09252017_1335.rda"); ui.n.arms <- 2;
 # Binary Example
 #load("michael_09252017_1508.rda"); ui.n.arms <- 2;
 # Survival Example
@@ -52,7 +53,7 @@ load("michael_09252017_1335.rda"); ui.n.arms <- 2;
 # Binary Example
 #load("michael_09252017_2100.rda")
 # Survival Example
-#load("michael_09252017_2112.rda")
+load("michael_09252017_2112.rda")
 
 # Get start time
 isa.start.time <- proc.time()
@@ -512,3 +513,4 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
 }
 
 save(osea.result,osoa.result,tsea.result,tsoa.result,file="optimizer_output.rda")
+knit("../optimizer_report_final.Rnw")
