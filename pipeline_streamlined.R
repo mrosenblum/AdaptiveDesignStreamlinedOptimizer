@@ -21,7 +21,7 @@ default.means.temperature <- 100
 default.survival.temperature <- 10
 default.evals.per.temp <- 10
 default.report.iteration <- 1
-default.power.penalty <- 1000
+default.power.penalty <- 100000
 default.boundary.to.enroll <- 1
 
 #code.dir <- "."
@@ -81,11 +81,36 @@ if(!exists("initial.seed")){
 # Set random seed
 set.seed(initial.seed)
 
+# Source design.evaluation code corresponding to number of arms in trial
+if(n.arms==2){
+  source(file.path(code.dir, backend.1tvc.file))
+} else if(n.arms==3){
+  source(file.path(code.dir, backend.2tvc.file))
+}
+# Set functions for computing design features and design evaluation
+# Computes distribution of test statistics in a given scenario,
+# using canonical joint distribution
+get.z.distribution <- 
+  function(...){
+    construct.test.statistics.joint.distribution(...)
+  }
+# Computes efficacy stopping boundaries
+get.efficacy.dunnett <-
+  function(...){
+    get.eff.bound(...)
+  }
+# Evaluates performance of simulated trials 
+evaluate.design.dunnett <- 
+  function(...){
+    design.evaluate(...)
+  }
+
+##
+## Format User Inputs from Graphical User Interface
+##
+
 if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
-  n.stages <- 1 # Single Stage
-  number.of.alpha.allocation.components <- n.stages*n.subpopulations
   if(n.arms==2){
-    source(file.path(code.dir, backend.1tvc.file))
     if(ui.type.of.outcome.data=="binary") {
       ui.outcome.mean <- subset(ui.population.parameters,select=c(2,4,1,3))
       ui.outcome.sd <- ui.outcome.mean*(1-ui.outcome.mean)
@@ -94,47 +119,37 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
       ui.outcome.sd <- subset(ui.population.parameters,select=c(4,6,3,5))
     }
   } else if(n.arms==3){
-    source(file.path(code.dir, backend.2tvc.file))
     if(ui.type.of.outcome.data=="binary") {
       ui.outcome.mean <- ui.population.parameters
       ui.outcome.sd <- ui.outcome.mean*(1-ui.outcome.mean)
     } else{
       ui.outcome.mean <- subset(ui.population.parameters,select=c(1,3,5,7,9,11))
       ui.outcome.sd <- subset(ui.population.parameters,select=c(2,4,6,8,10,12))
-    }
-    
+      }
   }
-
-  # Computes distribution of test statistics in a given scenario,
-  # using canonical joint distribution
-  get.z.distribution <- 
-    function(...){
-      construct.test.statistics.joint.distribution(...)
-    }
-  # Computes efficacy stopping boundaries
-  get.efficacy.dunnett <-
-    function(...){
-      get.eff.bound(...)
-    }
-  # Evaluates performance of simulated trials 
-  evaluate.design.dunnett <- 
-    function(...){
-      design.evaluate(...)
-    }
-  
-
   arm.names <- c(LETTERS[3], LETTERS[1:n.arms][-3])[1:n.arms]
   colnames(ui.outcome.sd) <- colnames(ui.outcome.mean) <-
     paste0(rep(arm.names, each=n.subpopulations),
            rep(1:n.subpopulations, n.arms))
-  
-  # if(ui.optimization.target=="ESS") {
+} else { # Survival Cases
+    ui.hazard.rate <- ui.population.parameters
+    if(ui.include.designs.start.subpop.1){
+      number.of.alpha.allocation.components <- number.of.alpha.allocation.components - (n.subpopulations-1)}
+    arm.names <- c(LETTERS[3], LETTERS[1:n.arms][-3])[1:n.arms]
+    colnames(ui.hazard.rate) <- 
+      paste0(rep(arm.names, each=n.subpopulations),
+             rep(1:n.subpopulations, n.arms))
+}
+
+## Run optimizations, starting with 1 stage
+n.stages <- 1 # Single Stage
+number.of.alpha.allocation.components <- n.stages*n.subpopulations
+if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
+ # if(ui.optimization.target=="ESS") {
   #   Switch Objective Function and Parameters
   # }
-  
   max.enrollment.period <- (ui.max.duration-ui.followup.length)
   max.possible.accrual <- ui.accrual.yearly.rate*max.enrollment.period
-  
   
   osea.result <-
     sa.optimize(search.parameters=
@@ -172,43 +187,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 report.iteration=default.report.iteration,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power)
-  
-  
-} else { # Survival Cases
-  n.stages <- 1 # Single Stage
-  ui.hazard.rate <- ui.population.parameters
-  number.of.alpha.allocation.components <- n.stages*n.subpopulations
-  if(ui.include.designs.start.subpop.1){
-    number.of.alpha.allocation.components <- number.of.alpha.allocation.components - (n.subpopulations-1)}
-    
-  if(n.arms==2){
-    source(file.path(code.dir, backend.1tvc.file))
-  } else if(n.arms==3){
-    source(file.path(code.dir, backend.2tvc.file))
-  }
-  
-
-  # Computes distribution of test statistics in a given scenario,
-  # using canonical joint distribution
-  get.z.distribution <- 
-    function(...){
-      construct.test.statistics.joint.distribution(...)
-    }
-  # Computes efficacy stopping boundaries
-  get.efficacy.dunnett <-
-    function(...){
-      get.eff.bound(...)
-    }
-  # Evaluates performance of simulated trials 
-  evaluate.design.dunnett <- 
-    function(...){
-      design.evaluate(...)
-    }
-  
-  arm.names <- c(LETTERS[3], LETTERS[1:n.arms][-3])[1:n.arms]
-  colnames(ui.hazard.rate) <- 
-    paste0(rep(arm.names, each=n.subpopulations),
-           rep(1:n.subpopulations, n.arms))
+} else {#Survival Outcome 
 
   osea.result <-
     sa.optimize(search.parameters=
@@ -337,15 +316,15 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 power.constraints=ui.desired.power)
 }
 
+## Two stage design
+n.stages <- 2 # Two Stage
+number.of.alpha.allocation.components <- n.stages*n.subpopulations
+
 ## 2SEA 2 stage equal alpha
 if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
-  n.stages <- 2 # Two Stage
-  number.of.alpha.allocation.components <- n.stages*n.subpopulations
-
   # if(ui.optimization.target=="ESS") {
   #   Switch Objective Function and Parameters
   # }
-  
   tsea.result <-
     sa.optimize(search.parameters=
                   list(n.per.arm=default.pct.of.max*
@@ -383,11 +362,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 report.iteration=default.report.iteration,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power)
-  
-  
 } else { # Survival Cases
-  n.stages <- 2 # Single Stage
-  number.of.alpha.allocation.components <- n.stages*n.subpopulations
   if(ui.include.designs.start.subpop.1){
       number.of.alpha.allocation.components <- number.of.alpha.allocation.components - (n.subpopulations-1)}
 
