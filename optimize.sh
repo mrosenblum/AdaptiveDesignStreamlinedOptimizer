@@ -18,7 +18,7 @@
 
 username=$1
 random=$2
-project_root=./${username}/${random}
+project_root=/users/agherman/rosenblum/optimizer/${username}/${random}
 code_dir=${project_root}/code/
 data_dir=${project_root}/data/
 log_dir=${project_root}/log
