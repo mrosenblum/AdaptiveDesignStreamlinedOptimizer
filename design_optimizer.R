@@ -796,7 +796,7 @@ dunnett.means <-
     
     names(trial.criteria) <- criteria.names
     
-    trial.criteria$ess <-
+    trial.criteria$size <-
       aggregate(sample.size*proportion~scenario,
                 FUN=sum,
                 data=trial.criteria$distribution.of.trials)[,2]
@@ -1058,7 +1058,7 @@ dunnett.survival <-
     
     names(trial.criteria) <- criteria.names
     
-    trial.criteria$ess <-
+    trial.criteria$size <-
       aggregate(sample.size*proportion~scenario,
                 FUN=sum,
                 data=trial.criteria$distribution.of.trials)[,2]
@@ -1203,7 +1203,7 @@ transform.parameters <-
 
 
 
-### power.penalized.weighted.ess ###############################################
+### power.penalized.weighted ###############################################
 # Description: an objective function that encorporates a weighted average of
 #   expected sample size (ESS) across outcome scenarios, with an added penalty
 #   for each violation of the power constraints. 
@@ -1224,20 +1224,24 @@ transform.parameters <-
 #
 #
 # Output: an objective function value.
-power.penalized.weighted.ess <- 
+power.penalized.weighted <- 
   function(trial.performance,
            scenario.weights=NULL,
            power.constraints=NULL,
-           power.penalty=100,
-           objective.scale=1) {
-    
-    stopifnot("ess" %in% names(trial.performance),
+           power.penalty=100000,
+           objective.scale=1,
+           optimization.target="size") {
+    stopifnot(optimization.target %in% names(trial.performance),
               "empirical.power" %in% names(trial.performance),
               is.numeric(objective.scale) & is.scalar(objective.scale),
               is.finite(objective.scale) & objective.scale > 0)
     
+    if(optimization.target=="size"){
+      target.objective.value <- trial.performance$size
+    } else if(optimization.target=="duration"){
+      target.objective.value <- trial.performance$size
+    }
     trial.power <- cbind(trial.performance$empirical.power,trial.performance$conj.power)
-    
     # For superiority trials, don't penalize for power in alternatives < MCID
     if(exists("above.mcid", where=trial.performance)){
       above.mcid <- trial.performance$mcid
@@ -1250,20 +1254,17 @@ power.penalized.weighted.ess <-
     }
     
     if(is.null(scenario.weights)){
-      scenario.weights <- rep(1, length(trial.performance$ess))
+      scenario.weights <- rep(1, length(target.objective.value))
     }
 
     objective.value <- 
-      weighted.mean(trial.performance$ess, w=scenario.weights) +
+      weighted.mean(target.objective.value, w=scenario.weights) +
       sum(linear.threshold.penalty(trial.power,
                                    threshold.matrix=power.constraints,
                                    linear.penalty=power.penalty), na.rm=TRUE)
     stopifnot(is.scalar(objective.value))
     return(objective.value/objective.scale)
   }
-
-
-
 
 ### get.optim.trajectory ######################################################
 # Description: by default, optim() only returns the value of the objective
