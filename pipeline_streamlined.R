@@ -613,5 +613,6 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 optimization.target=ui.optimization.target)
 }
 
+setwd(file.path(data.dir,"results"))
 save(osea.result,osoa.result,tsea.result,tsoa.result,file="optimizer_output.rda")
-knit(report.generator.file,output="trial_design_performance_report.tex")
+knit(file.path(code.dir,report.generator.file),output="trial_design_performance_report.tex")
