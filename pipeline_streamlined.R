@@ -14,7 +14,7 @@ min.enrollment.period <- 0.5    # For Survival Outcomes
 default.function.scale <- 1
 default.n.scale <- 100
 default.period.scale <- 2
-default.max.iterations <- 1000
+default.max.iterations <- 10
 # default.max.iterations <- 5e4 # Use for production
 default.n.simulations <- 1e4
 default.means.temperature <- 100
@@ -152,7 +152,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   max.possible.accrual <- ui.accrual.yearly.rate*max.enrollment.period
   #Binary search to minimize sample size over feasible designs
   feasible.n.per.arm <- osea.result <- NULL
-  n.per.arm.upper.bound <- pmin(ui.max.size, max.possible.accrual)
+  n.per.arm.upper.bound <- min(ui.max.size, max.possible.accrual)
   n.per.arm.lower.bound <- min.n.per.arm
   #Increase upper bound if necessary to meet power requirements
   repeat{
@@ -242,7 +242,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   
   } else {#Survival Outcome 
   feasible.enrollment.period <- osea.design.performance.evaluation <- NULL
-  enrollment.period.upper.bound <- pmin(ui.max.duration,
+  enrollment.period.upper.bound <- min(ui.max.duration,
                                         ui.max.size/ui.accrual.yearly.rate)
   enrollment.period.lower.bound <- min.enrollment.period
   feasible.max.duration <- ui.max.duration
@@ -359,7 +359,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                     ceiling(
                       squash(x, 
                              min.n.per.arm,
-                             pmin(ui.max.size, max.possible.accrual))),
+                             min(ui.max.size, max.possible.accrual))),
                     alpha.allocation=reals.to.probability
                                       ),
                 fixed.parameters=list(n.arms=n.arms,
@@ -390,17 +390,17 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   osoa.result <-
     sa.optimize(search.parameters=
                   list(enrollment.period=ifelse(!is.null(feasible.enrollment.period),feasible.enrollment.period,
-                         pmin(feasible.max.duration,
-                              ui.max.size/ui.accrual.yearly.rate)),
+                         min(c(feasible.max.duration,
+                              ui.max.size/ui.accrual.yearly.rate))),
                        alpha.allocation=
                          rep(1/number.of.alpha.allocation.components,
                              number.of.alpha.allocation.components)
                        ),
                 search.transforms=
                   list(enrollment.period=function(x)
-                    squash(x, min.enrollment.period,
-                           pmin(feasible.max.duration,
-                                ui.max.size/ui.accrual.yearly.rate)),
+                    squash(x, min.enrollment.period,max(feasible.enrollment.period,
+                           min(c(feasible.max.duration,
+                                ui.max.size/ui.accrual.yearly.rate)))),
                     alpha.allocation=reals.to.probability
                     ),
                 fixed.parameters=list(n.arms=n.arms,
@@ -450,7 +450,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                     ceiling(
                       squash(x, 
                              min.n.per.arm,
-                             pmin(ui.max.size, max.possible.accrual)))
+                             min(ui.max.size, max.possible.accrual)))
                   ),
                 fixed.parameters=list(n.arms=n.arms,
                                       accrual.rate=ui.accrual.yearly.rate,
@@ -485,12 +485,12 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
     tsea.result <-
     sa.optimize(search.parameters=
                   list(enrollment.period=ifelse(!is.null(feasible.enrollment.period),feasible.enrollment.period,
-                                                pmin(feasible.max.duration,
+                                                min(feasible.max.duration,
                                                      ui.max.size/ui.accrual.yearly.rate))),
                 search.transforms=
                   list(enrollment.period=function(x)
                     squash(x, min.enrollment.period,
-                           pmin(feasible.max.duration,
+                           min(feasible.max.duration,
                                 ui.max.size/ui.accrual.yearly.rate))),
                 fixed.parameters=list(n.arms=n.arms,
                                       accrual.rate=ui.accrual.yearly.rate,
@@ -540,7 +540,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                     ceiling(
                       squash(x, 
                              min.n.per.arm,
-                             pmin(ui.max.size, max.possible.accrual))),
+                             min(ui.max.size, max.possible.accrual))),
                       interim.info.times=function(x){c(squash(x[1],0.1,0.9),1)},
                       alpha.allocation=reals.to.probability
                   ),
@@ -571,7 +571,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   tsoa.result <-
     sa.optimize(search.parameters=
                   list(enrollment.period=ifelse(!is.null(feasible.enrollment.period),feasible.enrollment.period,
-                                                pmin(feasible.max.duration,
+                                                min(feasible.max.duration,
                                                      ui.max.size/ui.accrual.yearly.rate)),
                        time=c(feasible.max.duration/2,feasible.max.duration),
                        futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
@@ -582,7 +582,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 search.transforms=
                   list(enrollment.period=function(x)
                     squash(x, min.enrollment.period,
-                           pmin(feasible.max.duration,
+                           min(feasible.max.duration,
                                 ui.max.size/ui.accrual.yearly.rate)),
                     time=function(t){t1 <- squash(t[1],0.01,feasible.max.duration-0.01); t2<-squash(t[2],t1+0.01,feasible.max.duration); return(c(t1,t2))}, 
                     alpha.allocation=reals.to.probability
