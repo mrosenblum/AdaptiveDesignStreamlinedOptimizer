@@ -135,7 +135,7 @@ if ("ui.time.to.event.censoring.rate" %in% ls()) {
 \maketitle
 \section{Introduction}
 
-Four optimal designs are presented in this report:
+Four optimized designs are presented in this report:
 \begin{itemize}
     \item 1SEA: the optimal 1-stage design with equal alpha allocation to all hypotheses; 
     \item 1SOA: the optimal 1-stage design with alpha allocation chosen by optimization;
@@ -153,7 +153,7 @@ Details of the design space we searched over and the optimization method can be 
 
 \subsection{User-Supplied Parameters} \label{sec:user-supplied-parameters}
 
-Below is a list of user-supplied parameters.
+Below is a list of user-supplied parameters, which are inputs to the trial design optimizer.
 \begin{itemize}
     \item Number of study arms: \Sexpr{ui.n.arms}.
     \item Type of outcome data: \Sexpr{ui.type.of.outcome.data}.
@@ -167,13 +167,13 @@ Below is a list of user-supplied parameters.
     \item Optimization target: \Sexpr{ui.optimization.target}.
     \Sexpr{CENSORING.RATE}
     \Sexpr{MCID}
-    \item Incorporate precision gain: \Sexpr{ui.incorporate.precision.gain}.
-    \item Relative efficiency: \Sexpr{ui.relative.efficiency}.
-    \item Maximum Number of Stages: \Sexpr{ui.max.stages}
-    \item Maxmimum Number of Different Designs to Search Over: \Sexpr{ui.sann}.
-    \item Include Designs that Start Enrolling only Subpop 1: \Sexpr{ui.include.designs.start.subpop.1}
-    \item Distribution of outcomes assumed by the user: see \Sexpr{OUTCOME.DISTRIBUTION}.
-    \item Desired Power: see Table \ref{tab:desired-power}.
+    \item Assume precision gain from adjusting for baseline variables?: \Sexpr{ui.incorporate.precision.gain}.
+    \item If assumed precision gain from baseline variables, relative efficiency = \Sexpr{ui.relative.efficiency}.
+   %  \item Maximum Number of Stages: \Sexpr{ui.max.stages}
+   % \item Maxmimum Number of Different Designs to Search Over: \Sexpr{ui.sann}.
+   % \item Include Designs that Start Enrolling only Subpop 1: \Sexpr{ui.include.designs.start.subpop.1}
+    \item Distribution of outcomes assumed by the user, used to define power requirements and expected sample size and duration: see \Sexpr{OUTCOME.DISTRIBUTION}.
+    \item Power requirements: see Table \ref{tab:desired-power}.
     
 \end{itemize}
 
@@ -282,10 +282,10 @@ Table \ref{tab:1sea-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_1SEA, results='asis'>>=
 
 my.table <- data.frame(osea.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Accrual.year <- osea.result$optima$per.stage.sample.sizes$accrual.years
+my.table$Calendar.Time.In.Years <- osea.result$optima$per.stage.sample.sizes$accrual.years
 
-table.cap <- "Total sample size per stage for the 1SEA design. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
-table.scap <- "Total sample size per stage for the 1SEA design."
+table.cap <- "Total sample size per stage for the 1SEA design and calendar times. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "Total sample size per stage for the 1SEA design and calendar times."
 print(xtable(data.frame(Stage = 1:nrow(my.table),
                         my.table),
              caption=c(table.cap, table.scap), 
@@ -327,7 +327,8 @@ Table \ref{tab:1sea-performance} gives additional performance metrics including 
 
 <<Power_1SEA, results='asis'>>=
 
-my.table <- osea.result$optima$empirical.power
+colnames(osea.result$optima$conj.power) <- "Reject_All"
+my.table <- cbind(osea.result$optima$empirical.power,osea.result$optima$conj.power)
 colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
 
 table.cap <- "Empirical power for the 1SEA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to the corresponding null hypothesis being true in the given scenario."
@@ -342,6 +343,7 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
 <<Fwer_1SEA, results='asis'>>=
 
 my.table <- osea.result$optima$fwer
+colnames(my.table) <- "Familywise\ Type\ I\ Error\ Rate"
 names(my.table) <- "Familywise Type I error rate"
 
 table.cap <- "Empirical FWER for the 1SEA design. NA indicates ``not applicable'' due to all null hypothesis being false in the given scenario."
@@ -458,10 +460,10 @@ Table \ref{tab:1soa-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_1SOA, results='asis'>>=
 
 my.table <- data.frame(osoa.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Accrual.year <- osoa.result$optima$per.stage.sample.sizes$accrual.years
+my.table$Calendar.Time.In.Years <- osoa.result$optima$per.stage.sample.sizes$accrual.years
 
-table.cap <- "Total sample size per stage for the 1SOA design. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
-table.scap <- "Total sample size per stage for the 1SOA design."
+table.cap <- "Total sample size per stage for the 1SOA design and calendar times. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "Total sample size per stage for the 1SOA design and calendar times."
 print(xtable(data.frame(Stage = 1:nrow(my.table),
                         my.table),
              caption=c(table.cap, table.scap), 
@@ -502,7 +504,8 @@ Table \ref{tab:1soa-performance} gives additional performance metrics including 
 
 <<Power_1SOA, results='asis'>>=
 
-my.table <- osoa.result$optima$empirical.power
+colnames(osoa.result$optima$conj.power) <- "Reject_All"
+my.table <- cbind(osoa.result$optima$empirical.power,osoa.result$optima$conj.power)
 colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
 
 table.cap <- "Empirical power for the 1SOA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to the corresponding null hypothesis being true in the given scenario."
@@ -517,6 +520,7 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
 <<Fwer_1SOA, results='asis'>>=
 
 my.table <- osoa.result$optima$fwer
+colnames(my.table) <- "Familywise\ Type\ I\ Error\ Rate"
 names(my.table) <- "Familywise Type I error rate"
 
 table.cap <- "Empirical FWER for the 1SOA design. NA indicates ``not applicable'' due to all null hypothesis being false in the given scenario."
@@ -631,10 +635,10 @@ Table \ref{tab:2sea-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_2SEA, results='asis'>>=
 
 my.table <- data.frame(tsea.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Accrual.year <- tsea.result$optima$per.stage.sample.sizes$accrual.years
+my.table$Calendar.Time.In.Years <- tsea.result$optima$per.stage.sample.sizes$accrual.years
 
-table.cap <- "Total sample size per stage for the 2SEA design. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
-table.scap <- "Total sample size per stage for the 2SEA design."
+table.cap <- "Total sample size per stage for the 2SEA design and calendar times. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "Total sample size per stage for the 2SEA design and calendar times."
 print(xtable(data.frame(Stage = 1:nrow(my.table),
                         my.table),
              caption=c(table.cap, table.scap), 
@@ -677,7 +681,8 @@ Figure \ref{fig:Boxplot_ss_duration_2SEA} gives the distribution of trial sample
 
 <<Power_2SEA, results='asis'>>=
 
-my.table <- tsea.result$optima$empirical.power
+colnames(tsea.result$optima$conj.power) <- "Reject_All"
+my.table <- cbind(tsea.result$optima$empirical.power,tsea.result$optima$conj.power)
 colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
 
 table.cap <- "Empirical power for the 2SEA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to the corresponding null hypothesis being true in the given scenario."
@@ -692,6 +697,7 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
 <<Fwer_2SEA, results='asis'>>=
 
 my.table <- tsea.result$optima$fwer
+colnames(my.table) <- "Familywise\ Type\ I\ Error\ Rate"
 names(my.table) <- "Familywise Type I error rate"
 
 table.cap <- "Empirical FWER for the 2SEA design. NA indicates ``not applicable'' due to all null hypothesis being false in the given scenario."
@@ -862,10 +868,10 @@ Table \ref{tab:2soa-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_2SOA, results='asis'>>=
 
 my.table <- data.frame(tsoa.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Accrual.year <- tsoa.result$optima$per.stage.sample.sizes$accrual.years
+my.table$Calendar.Time.In.Years <- tsoa.result$optima$per.stage.sample.sizes$accrual.years
 
-table.cap <- "Total sample size per stage for the 2SOA design. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
-table.scap <- "Total sample size per stage for the 2SOA design."
+table.cap <- "Total sample size per stage for the 2SOA design and calendar times. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "Total sample size per stage for the 2SOA design and calendar times."
 print(xtable(data.frame(Stage = 1:nrow(my.table),
                         my.table),
              caption=c(table.cap, table.scap), 
@@ -907,8 +913,8 @@ Table \ref{tab:2soa-performance} gives additional performance metrics including 
 Figure \ref{fig:Boxplot_ss_duration_2SOA} gives the distribution of trial sample size and duration. Note that the x-axis scale is not linear, because sample sizes and durations are clustered at specific values (depending on when the trial stops).
 
 <<Power_2SOA, results='asis'>>=
-
-my.table <- tsoa.result$optima$empirical.power
+colnames(tsea.result$optima$conj.power) <- "Reject_All"
+my.table <- cbind(tsea.result$optima$empirical.power,tsea.result$optima$conj.power)
 colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
 
 table.cap <- "Empirical power for the 2SOA design. Column ``A1'' corresponds to the null hypothesis of treatment arm A (being equal to control arm C) in subpopulation 1; similar for other columns. NA indicates ``not applicable'' due to the corresponding null hypothesis being true in the given scenario."
@@ -923,6 +929,7 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
 <<Fwer_2SOA, results='asis'>>=
 
 my.table <- tsoa.result$optima$fwer
+colnames(my.table) <- "Familywise\ Type\ I\ Error\ Rate"
 names(my.table) <- "Familywise Type I error rate"
 
 table.cap <- "Empirical FWER for the 2SOA design. NA indicates ``not applicable'' due to all null hypothesis being false in the given scenario."
