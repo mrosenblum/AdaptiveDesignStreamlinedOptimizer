@@ -69,9 +69,8 @@ function simulation_setup {
 		wait
 		cd $run_dir/results
 		latex trial_design_performance_report.tex
-		latex trial_design_performance_report.tex
-		latex trial_design_performance_report.tex
-		latex trial_design_performance_report.tex
+		pdflatex trial_design_performance_report
+		pdflatex trial_design_performance_report
 		pdflatex trial_design_performance_report
 	else
 		echo 'ERROR: project_root ($project_root) does not exist.'
