@@ -666,7 +666,7 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
 
 <<ESS_2SEA, results='asis'>>=
 
-my.table <- c(tsea.result$optima$ess, sum(tsea.result$optima$ess * scenario.weights))
+my.table <- c(tsea.result$optima$ess, sum(tsea.result$optima$size * scenario.weights))
 
 table.cap <- "Expected sample size (ESS) for the 2SEA design."
 table.scap <- "Expected sample size for the 2SEA design."
@@ -898,7 +898,7 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
 
 <<ESS_2SOA, results='asis'>>=
 
-my.table <- c(tsoa.result$optima$ess, sum(tsoa.result$optima$ess * scenario.weights))
+my.table <- c(tsoa.result$optima$ess, sum(tsoa.result$optima$size * scenario.weights))
 
 table.cap <- "Expected sample size (ESS) for the 2SOA design."
 table.scap <- "Expected sample size for the 2SOA design."
