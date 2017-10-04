@@ -318,10 +318,6 @@ Table \ref{tab:1sea-fwer} lists the empirical familywise Type I error (FWER).
 
 Table \ref{tab:1sea-typeIerror} lists the empirical Type I error.
 
-Table \ref{tab:1sea-ess} lists the expected sample size.
-
-Table \ref{tab:1sea-duration} lists the expected duration.
-
 Table \ref{tab:1sea-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
 
 
@@ -367,32 +363,6 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
                         my.table),
              caption=c(table.cap, table.scap), 
              label = "tab:1sea-typeIerror", digits=3),
-      include.rownames=FALSE, NA.string = "NA")
-@
-
-<<ESS_1SEA, results='asis'>>=
-
-my.table <- c(osea.result$optima$ess, sum(osea.result$optima$ess * scenario.weights))
-
-table.cap <- "Expected sample size (ESS) for the 1SEA design."
-table.scap <- "Expected sample size for the 1SEA design."
-print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
-                        ESS = my.table),
-             caption=c(table.cap, table.scap), 
-             label = "tab:1sea-ess", digits=0),
-      include.rownames=FALSE, NA.string = "NA")
-@
-
-<<Duration_1SEA, results='asis'>>=
-
-my.table <- c(osea.result$optima$duration, sum(osea.result$optima$duration * scenario.weights))
-
-table.cap <- "Expected duation for the 1SEA design."
-table.scap <- "Expected duration for the 1SEA design."
-print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
-                        Duration = my.table),
-             caption=c(table.cap, table.scap), 
-             label = "tab:1sea-duration", digits=2),
       include.rownames=FALSE, NA.string = "NA")
 @
 
@@ -496,10 +466,6 @@ Table \ref{tab:1soa-fwer} lists the empirical familywise Type I error (FWER).
 
 Table \ref{tab:1soa-typeIerror} lists the empirical Type I error.
 
-Table \ref{tab:1soa-ess} lists the expected sample size.
-
-Table \ref{tab:1soa-duration} lists the expected duration.
-
 Table \ref{tab:1soa-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
 
 <<Power_1SOA, results='asis'>>=
@@ -544,32 +510,6 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
                         my.table),
              caption=c(table.cap, table.scap), 
              label = "tab:1soa-typeIerror", digits=3),
-      include.rownames=FALSE, NA.string = "NA")
-@
-
-<<ESS_1SOA, results='asis'>>=
-
-my.table <- c(osoa.result$optima$ess, sum(osoa.result$optima$ess * scenario.weights))
-
-table.cap <- "Expected sample size (ESS) for the 1SOA design."
-table.scap <- "Expected sample size for the 1SOA design."
-print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
-                        ESS = my.table),
-             caption=c(table.cap, table.scap), 
-             label = "tab:1soa-ess", digits=0),
-      include.rownames=FALSE, NA.string = "NA")
-@
-
-<<Duration_1SOA, results='asis'>>=
-
-my.table <- c(osoa.result$optima$duration, sum(osoa.result$optima$duration * scenario.weights))
-
-table.cap <- "Expected duation for the 1SOA design."
-table.scap <- "Expected duration for the 1SOA design."
-print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
-                        Duration = my.table),
-             caption=c(table.cap, table.scap), 
-             label = "tab:1soa-duration", digits=2),
       include.rownames=FALSE, NA.string = "NA")
 @
 
