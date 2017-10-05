@@ -152,7 +152,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   max.possible.accrual <- ui.accrual.yearly.rate*max.enrollment.period
   #Binary search to minimize sample size over feasible designs
   feasible.n.per.arm <- osea.result <- NULL
-  n.per.arm.upper.bound <- min(ui.max.size, max.possible.accrual)
+  n.per.arm.upper.bound <- min(ui.max.size, max.possible.accrual)/n.arms
   n.per.arm.lower.bound <- min.n.per.arm
   #Increase upper bound if necessary to meet power requirements
   #repeat{
@@ -206,7 +206,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
       n.per.arm.lower.bound <- candidate.n.per.arm  
     }
   }
-  if(is.null(feasible.n.per.arm)){feasible.n.per.arm <- max.possible.accrual} #If none feasible, consider max allowed sample size
+  if(is.null(feasible.n.per.arm)){feasible.n.per.arm <- min(ui.max.size, max.possible.accrual)/n.arms} #If none feasible, consider max allowed sample size
   #Placeholder to force output into format expected by .Rnw file for report building
   osea.result <-
     sa.optimize(search.parameters=
