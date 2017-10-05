@@ -155,30 +155,30 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   n.per.arm.upper.bound <- min(ui.max.size, max.possible.accrual)
   n.per.arm.lower.bound <- min.n.per.arm
   #Increase upper bound if necessary to meet power requirements
-  repeat{
-    osea.design.performance.evaluation <- dunnett.wrapper(outcome.type=ui.type.of.outcome.data,
-                                                        n.per.arm=floor(n.per.arm.upper.bound),
-                                                        n.arms=n.arms,
-                                                        accrual.rate=ui.accrual.yearly.rate,
-                                                        delay=ui.followup.length,
-                                                        subpopulation.sizes=ui.subpopulation.sizes,
-                                                        interim.info.times=NULL,
-                                                        outcome.mean=ui.outcome.mean,
-                                                        outcome.sd=ui.outcome.sd,
-                                                        mcid=ui.mcid,
-                                                        futility.boundaries=NULL,
-                                                        n.simulations=default.n.simulations,
-                                                        alpha.allocation=rep(1/number.of.alpha.allocation.components,
-                                                                             number.of.alpha.allocation.components),
-                                                        total.alpha=ui.total.alpha)
-    discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
-    feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
-                                    discrepancy.between.desired.power.empirical.power<=0)
-    if(feasibility.indicator){
-      break
-    }
-    n.per.arm.upper.bound <- 2*n.per.arm.upper.bound
-  }
+  #repeat{
+  #  osea.design.performance.evaluation <- dunnett.wrapper(outcome.type=ui.type.of.outcome.data,
+  #                                                      n.per.arm=floor(n.per.arm.upper.bound),
+  #                                                      n.arms=n.arms,
+  #                                                      accrual.rate=ui.accrual.yearly.rate,
+  #                                                      delay=ui.followup.length,
+  #                                                      subpopulation.sizes=ui.subpopulation.sizes,
+  #                                                      interim.info.times=NULL,
+  #                                                      outcome.mean=ui.outcome.mean,
+  #                                                      outcome.sd=ui.outcome.sd,
+  #                                                      mcid=ui.mcid,
+  #                                                      futility.boundaries=NULL,
+  #                                                      n.simulations=default.n.simulations,
+  #                                                      alpha.allocation=rep(1/number.of.alpha.allocation.components,
+  #                                                                           number.of.alpha.allocation.components),
+  #                                                      total.alpha=ui.total.alpha)
+  #  discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
+  #  feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
+  #                                  discrepancy.between.desired.power.empirical.power<=0)
+  #  if(feasibility.indicator){
+  #    break
+  #  }
+  #  n.per.arm.upper.bound <- 2*n.per.arm.upper.bound
+  #}
   while(n.per.arm.upper.bound-n.per.arm.lower.bound>0.1){
     candidate.n.per.arm <- mean(c(n.per.arm.lower.bound,n.per.arm.upper.bound))
     osea.design.performance.evaluation <- dunnett.wrapper(outcome.type=ui.type.of.outcome.data,
@@ -200,12 +200,13 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
     feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
                                         discrepancy.between.desired.power.empirical.power<=0)
     if(feasibility.indicator==TRUE){#Current sample size is feasible; store results and explore smaller sample sizes
-      osea.result <- osea.design.performance.evaluation;
+      #osea.result <- osea.design.performance.evaluation;
       feasible.n.per.arm <- candidate.n.per.arm;
       n.per.arm.upper.bound <- candidate.n.per.arm} else{ #Current sample size is infeasible; explore larger sample sizes
       n.per.arm.lower.bound <- candidate.n.per.arm  
     }
   }
+  if(is.null(feasible.n.per.arm)){feasible.n.per.arm <- max.possible.accrual} #If none feasible, consider max allowed sample size
   #Placeholder to force output into format expected by .Rnw file for report building
   osea.result <-
     sa.optimize(search.parameters=
@@ -246,34 +247,34 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                         ui.max.size/ui.accrual.yearly.rate)
   enrollment.period.lower.bound <- min.enrollment.period
   feasible.max.duration <- ui.max.duration
-  repeat{
-    osea.design.performance.evaluation <- dunnett.wrapper(outcome.type='survival',
-                                                          enrollment.period=enrollment.period.upper.bound,
-                                                          n.arms=n.arms,
-                                                          accrual.rate=ui.accrual.yearly.rate,
-                                                          subpopulation.sizes=ui.subpopulation.sizes,
-                                                          non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
-                                                          hazard.rate=ui.hazard.rate,
-                                                          time=max(ui.max.duration,enrollment.period.upper.bound),
-                                                          max.follow=Inf,
-                                                          censoring.rate=ui.time.to.event.censoring.rate,
-                                                          ni.margin=ui.time.to.event.non.inferiority.trial.margin,
-                                                          restrict.enrollment=FALSE,
-                                                          mcid=ui.mcid,
-                                                          futility.boundaries=NULL,
-                                                          n.simulations=default.n.simulations,
-                                                          alpha.allocation=
-                                                            rep(1/number.of.alpha.allocation.components,
-                                                                number.of.alpha.allocation.components),
-                                                          total.alpha=ui.total.alpha)
-    discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
-    feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
-                                    discrepancy.between.desired.power.empirical.power<=0)
-    if(feasibility.indicator){
-      break
-    }
-    enrollment.period.upper.bound <- 2*enrollment.period.upper.bound
-  }
+  #repeat{
+  #  osea.design.performance.evaluation <- dunnett.wrapper(outcome.type='survival',
+  #                                                        enrollment.period=enrollment.period.upper.bound,
+  #                                                        n.arms=n.arms,
+  #                                                        accrual.rate=ui.accrual.yearly.rate,
+  #                                                        subpopulation.sizes=ui.subpopulation.sizes,
+  #                                                        non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
+  #                                                        hazard.rate=ui.hazard.rate,
+  #                                                        time=max(ui.max.duration,enrollment.period.upper.bound),
+  #                                                        max.follow=Inf,
+  #                                                        censoring.rate=ui.time.to.event.censoring.rate,
+  #                                                        ni.margin=ui.time.to.event.non.inferiority.trial.margin,
+  #                                                        restrict.enrollment=FALSE,
+  #                                                        mcid=ui.mcid,
+  #                                                        futility.boundaries=NULL,
+  #                                                        n.simulations=default.n.simulations,
+  #                                                        alpha.allocation=
+  #                                                          rep(1/number.of.alpha.allocation.components,
+  #                                                              number.of.alpha.allocation.components),
+  #                                                        total.alpha=ui.total.alpha)
+  #  discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
+  #  feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
+  #                                  discrepancy.between.desired.power.empirical.power<=0)
+  #  if(feasibility.indicator){
+  #    break
+  #  }
+  #  enrollment.period.upper.bound <- 2*enrollment.period.upper.bound
+  #}
   while(enrollment.period.upper.bound-enrollment.period.lower.bound>0.01){
     candidate.enrollment.period <- mean(c(enrollment.period.lower.bound,enrollment.period.upper.bound))
     osea.design.performance.evaluation <- dunnett.wrapper(outcome.type='survival',
@@ -299,7 +300,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
     feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
                                     discrepancy.between.desired.power.empirical.power<=0)
     if(feasibility.indicator){#Current sample size is feasible; store current results and explore smaller sample sizes
-      osea.result <- osea.design.performance.evaluation;
+      #osea.result <- osea.design.performance.evaluation;
       feasible.enrollment.period <- candidate.enrollment.period;
       feasible.max.duration <- max(ui.max.duration,feasible.enrollment.period)
       enrollment.period.upper.bound <- candidate.enrollment.period} else{
@@ -307,6 +308,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
       enrollment.period.lower.bound <- candidate.enrollment.period  
     }
   }
+  if(is.null(feasible.enrollment.period)){feasible.enrollment.period <- ui.max.duration} #if no feasible solution, use maximum duration
   #Placeholder to force output into format expected by .Rnw file for report building
   osea.result <-
     sa.optimize(search.parameters=
