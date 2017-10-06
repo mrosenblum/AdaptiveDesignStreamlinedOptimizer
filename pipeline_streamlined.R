@@ -167,7 +167,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   #                                                      outcome.sd=ui.outcome.sd,
   #                                                      mcid=ui.mcid,
   #                                                      futility.boundaries=NULL,
-  #                                                      n.simulations=default.n.simulations,
+  #                                                      relative.efficiency=ui.relative.efficiency,        #                                                      n.simulations=default.n.simulations,
   #                                                      alpha.allocation=rep(1/number.of.alpha.allocation.components,
   #                                                                           number.of.alpha.allocation.components),
   #                                                      total.alpha=ui.total.alpha)
@@ -192,6 +192,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       outcome.sd=ui.outcome.sd,
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency,
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
                                                            number.of.alpha.allocation.components),
@@ -225,6 +226,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       outcome.sd=ui.outcome.sd,
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency,    
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
                                                            number.of.alpha.allocation.components),
@@ -262,7 +264,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   #                                                        restrict.enrollment=FALSE,
   #                                                        mcid=ui.mcid,
   #                                                        futility.boundaries=NULL,
-  #                                                        n.simulations=default.n.simulations,
+  #                                                        relative.efficiency=ui.relative.efficiency, 
+  #                                                         n.simulations=default.n.simulations,
   #                                                        alpha.allocation=
   #                                                          rep(1/number.of.alpha.allocation.components,
   #                                                              number.of.alpha.allocation.components),
@@ -291,6 +294,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       restrict.enrollment=FALSE,
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=
                                         rep(1/number.of.alpha.allocation.components,
@@ -308,7 +312,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
       enrollment.period.lower.bound <- candidate.enrollment.period  
     }
   }
-  if(is.null(feasible.enrollment.period)){feasible.enrollment.period <- ui.max.duration} #if no feasible solution, use maximum duration
+  if(is.null(feasible.enrollment.period)){feasible.enrollment.period <- min(ui.max.duration,
+                                                                            ui.max.size/ui.accrual.yearly.rate)} #if no feasible solution, use maximum duration
   #Placeholder to force output into format expected by .Rnw file for report building
   osea.result <-
     sa.optimize(search.parameters=
@@ -328,6 +333,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       restrict.enrollment=FALSE,
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=
                                         rep(1/number.of.alpha.allocation.components,
@@ -361,7 +367,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                     ceiling(
                       squash(x, 
                              min.n.per.arm,
-                             min(ui.max.size, max.possible.accrual))),
+                             min(ui.max.size, max.possible.accrual)/n.arms)),
                     alpha.allocation=reals.to.probability
                                       ),
                 fixed.parameters=list(n.arms=n.arms,
@@ -374,6 +380,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       outcome.sd=ui.outcome.sd,
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
                                       total.alpha=ui.total.alpha),
                 create.object=dunnett.wrapper,
@@ -400,9 +407,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                        ),
                 search.transforms=
                   list(enrollment.period=function(x)
-                    squash(x, min.enrollment.period,max(feasible.enrollment.period,
-                           min(c(feasible.max.duration,
-                                ui.max.size/ui.accrual.yearly.rate)))),
+                    squash(x, min.enrollment.period,feasible.enrollment.period),
                     alpha.allocation=reals.to.probability
                     ),
                 fixed.parameters=list(n.arms=n.arms,
@@ -418,6 +423,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       restrict.enrollment=FALSE,
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
                                       total.alpha=ui.total.alpha),
                 create.object=dunnett.wrapper,
@@ -452,7 +458,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                     ceiling(
                       squash(x, 
                              min.n.per.arm,
-                             min(ui.max.size, max.possible.accrual)))
+                             min(ui.max.size, max.possible.accrual)/n.arms))
                   ),
                 fixed.parameters=list(n.arms=n.arms,
                                       accrual.rate=ui.accrual.yearly.rate,
@@ -464,6 +470,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       outcome.sd=ui.outcome.sd,
                                       mcid=ui.mcid,
                                       futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
+                                      relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
                                                            number.of.alpha.allocation.components),
@@ -492,8 +499,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 search.transforms=
                   list(enrollment.period=function(x)
                     squash(x, min.enrollment.period,
-                           min(feasible.max.duration,
-                                ui.max.size/ui.accrual.yearly.rate))),
+                           min(ui.max.duration,
+                               ui.max.size/ui.accrual.yearly.rate))),
                 fixed.parameters=list(n.arms=n.arms,
                                       accrual.rate=ui.accrual.yearly.rate,
                                       subpopulation.sizes=ui.subpopulation.sizes,
@@ -507,6 +514,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       restrict.enrollment=FALSE,
                                       mcid=ui.mcid,
                                       futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
+                                      relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=
                                         rep(1/number.of.alpha.allocation.components,
@@ -542,7 +550,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                     ceiling(
                       squash(x, 
                              min.n.per.arm,
-                             min(ui.max.size, max.possible.accrual))),
+                             min(ui.max.size, max.possible.accrual)/n.arms)),
                       interim.info.times=function(x){c(squash(x[1],0.1,0.9),1)},
                       alpha.allocation=reals.to.probability
                   ),
@@ -554,6 +562,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       outcome.mean=ui.outcome.mean,
                                       outcome.sd=ui.outcome.sd,
                                       mcid=ui.mcid,
+                                      relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
                                       total.alpha=ui.total.alpha
                                       ),
@@ -584,8 +593,8 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 search.transforms=
                   list(enrollment.period=function(x)
                     squash(x, min.enrollment.period,
-                           min(feasible.max.duration,
-                                ui.max.size/ui.accrual.yearly.rate)),
+                           min(ui.max.duration,
+                               ui.max.size/ui.accrual.yearly.rate)),
                     time=function(t){t1 <- squash(t[1],0.01,feasible.max.duration-0.01); t2<-squash(t[2],t1+0.01,feasible.max.duration); return(c(t1,t2))}, 
                     alpha.allocation=reals.to.probability
                     ),
@@ -600,6 +609,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       ni.margin=ui.time.to.event.non.inferiority.trial.margin,
                                       restrict.enrollment=FALSE,
                                       mcid=ui.mcid,
+                                      relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
                                       total.alpha=ui.total.alpha),
                 create.object=dunnett.wrapper,

@@ -649,7 +649,8 @@ dunnett.means <-
            outcome.sd=NULL,
            mcid=0,
            futility.boundaries=NULL,
-           n.simulations=10000){
+           n.simulations=10000,
+           relative.efficiency=1){
     
     n.subgroups <- length(subpopulation.sizes)
     n.stages <- length(interim.info.times) + 1*(tail(interim.info.times, 1)!=1)
@@ -722,7 +723,8 @@ dunnett.means <-
                            var.vec.pop.1=var.vec.pop.1,
                            var.vec.pop.2=var.vec.pop.2,
                            outcome.type=outcome.type,
-                           prop.pop.1=prop.pop.1)
+                           prop.pop.1=prop.pop.1,
+                           relative.efficiency=relative.efficiency)
       
       # Get efficacy boundaries
       efficacy.boundaries <-
@@ -868,7 +870,8 @@ dunnett.survival <-
            mcid=0,
            restrict.enrollment=FALSE,
            boundary.to.enroll=-Inf,
-           n.simulations=10000){
+           n.simulations=10000,
+           relative.efficiency=1){
     
     n.subgroups <- length(subpopulation.sizes)
     n.stages <- length(time)
@@ -959,7 +962,8 @@ dunnett.survival <-
                             hazard.rate.pop.1=hazard.rate.pop.1,
                             hazard.rate.pop.2=hazard.rate.pop.2,
                             time=time,
-                            censoring.rate=censoring.rate)))
+                            censoring.rate=censoring.rate,
+                            relative.efficiency=relative.efficiency)))
 
       # Get efficacy boundaries
       efficacy.boundaries <-
