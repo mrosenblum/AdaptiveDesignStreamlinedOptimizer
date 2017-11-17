@@ -113,18 +113,18 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   if(n.arms==2){
     if(ui.type.of.outcome.data=="binary") {
       ui.outcome.mean <- subset(ui.population.parameters,select=c(2,4,1,3))
-      ui.outcome.sd <- ui.outcome.mean*(1-ui.outcome.mean)
+      ui.outcome.sd <- sqrt(ui.outcome.mean*(1-ui.outcome.mean))
     } else{
       ui.outcome.mean <- cbind(array(0,c(nrow(ui.population.parameters),2)),subset(ui.population.parameters,select=c(1,2)))
-      ui.outcome.sd <- subset(ui.population.parameters,select=c(4,6,3,5))
+      ui.outcome.sd <- sqrt(subset(ui.population.parameters,select=c(4,6,3,5)))
     }
   } else if(n.arms==3){
     if(ui.type.of.outcome.data=="binary") {
       ui.outcome.mean <- ui.population.parameters
-      ui.outcome.sd <- ui.outcome.mean*(1-ui.outcome.mean)
+      ui.outcome.sd <- sqrt(ui.outcome.mean*(1-ui.outcome.mean))
     } else{
       ui.outcome.mean <- subset(ui.population.parameters,select=c(1,3,5,7,9,11))
-      ui.outcome.sd <- subset(ui.population.parameters,select=c(2,4,6,8,10,12))
+      ui.outcome.sd <- sqrt(subset(ui.population.parameters,select=c(2,4,6,8,10,12)))
       }
   }
   arm.names <- c(LETTERS[3], LETTERS[1:n.arms][-3])[1:n.arms]
