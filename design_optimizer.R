@@ -657,7 +657,7 @@ dunnett.means <-
     n.scenarios <- nrow(outcome.mean)
     
     if(outcome.type=="binary"){
-      outcome.sd <- outcome.mean*(1-outcome.mean)
+      outcome.sd <- sqrt(outcome.mean*(1-outcome.mean))
     }
     
     efficacy.boundary.function <- get.efficacy.dunnett
