@@ -14,7 +14,7 @@ min.enrollment.period <- 0.5    # For Survival Outcomes
 default.function.scale <- 1
 default.n.scale <- 100
 default.period.scale <- 2
-default.max.iterations <- 1000
+default.max.iterations <- 10
 # default.max.iterations <- 5e4 # Use for production
 default.n.simulations <- 1e4
 default.means.temperature <- 100
@@ -239,6 +239,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 temperature=default.means.temperature,
                 evals.per.temp=default.evals.per.temp,
                 report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
@@ -347,6 +348,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 temperature=default.survival.temperature,
                 evals.per.temp=default.evals.per.temp,
                 report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
@@ -391,6 +393,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 temperature=default.means.temperature,
                 evals.per.temp=default.evals.per.temp,
                 report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power,                 
                 optimization.target=ui.optimization.target)
@@ -434,6 +437,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 temperature=default.survival.temperature,
                 evals.per.temp=default.evals.per.temp,
                 report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
@@ -483,6 +487,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 temperature=default.means.temperature,
                 evals.per.temp=default.evals.per.temp,
                 report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
@@ -528,6 +533,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 temperature=default.survival.temperature,
                 evals.per.temp=default.evals.per.temp,
                 report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
@@ -574,6 +580,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 temperature=default.means.temperature,
                 evals.per.temp=default.evals.per.temp,
                 report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
@@ -620,6 +627,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 temperature=default.survival.temperature,
                 evals.per.temp=default.evals.per.temp,
                 report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
                 power.penalty=default.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
