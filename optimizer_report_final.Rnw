@@ -86,11 +86,12 @@ n.arms <- ui.n.arms
 n.subpopulation <- 2
 n.design.types <- length(c("OSEA", "OSOA", "TSEA", "TSOA"))
 
-if ("scenario.weights" %in% names(tsoa.result$evaluate.object.parameters)) {
-    scenario.weights <- tsoa.result$evaluate.object.parameters$scenario.weights    
-} else {
-    scenario.weights <- rep(1/n.scenarios, n.scenarios)
-}
+#if ("scenario.weights" %in% names(tsoa.result$evaluate.object.parameters)) {
+#    scenario.weights <- tsoa.result$evaluate.object.parameters$scenario.weights    
+#} else {
+#    scenario.weights <- rep(1/n.scenarios, n.scenarios)
+#}
+    scenario.weights <- ui.scenario.weights
 
 if (n.arms == 3 & ui.outcome.type == "continuous") {
     OUTCOME.DISTRIBUTION <- "Tables \\ref{tab:ui-outcome-mean} and \\ref{tab:ui-outcome-sd}"    
@@ -183,11 +184,13 @@ Below is a list of user-supplied parameters, which are inputs to the trial desig
 
 if (ui.outcome.type == "continuous") {
     if (n.arms == 2) {
-        table.cap <- "User-supplied outcome mean and standard deviation (SD) under each scenario. In column names, ``trt'' denotes the treatment arm, and ``con'' denotes the control arm; numbers 1 and 2 indicate the corresponding subpopulation."
+        table.cap <- "User-supplied average treatment effects (Delta1, Delta2 for subpopulations 1 and 2, respectively) and outcome variances (VAR) under each scenario. In column names, ``TRT'' denotes the treatment arm, and ``CON'' denotes the control arm; numbers 1 and 2 indicate the corresponding subpopulation."
         table.scap <- "User-supplied outcome distribution under each scenario."
-        print(xtable(data.frame(Scenario = 1:n.scenarios,
+        mean.variance.data.frame <- data.frame(Scenario = 1:n.scenarios,
                           Weight = scenario.weights,
-                          ui.population.parameters),
+                          ui.population.parameters);
+        names(mean.variance.data.frame) <- c("Scenario","Weight","Delta1","Delta1","VAR1_TRT","VAR1_CON","VAR2_TRT","VAR2_CON")
+        print(xtable(mean.variance.data.frame,
                digits=c(0, 0, 2, rep(2, n.arms * n.subpopulation * 1.5)),
                caption=c(table.cap, table.scap),
                label = "tab:ui-outcome-distribution"),
@@ -212,7 +215,7 @@ if (ui.outcome.type == "continuous") {
         sd.table <- ui.population.parameters.df[, grepl("*sd", names(ui.population.parameters.df))]
         names(sd.table) <- sub("_sd", "", names(sd.table))
         
-        table.cap <- "User-supplied standard deviation (SD) under each scenario. In column names, ``S1'' and ``S2'' indicate subpopulation 1 and 2."
+        table.cap <- "User-supplied variance (VAR) under each scenario. In column names, ``S1'' and ``S2'' indicate subpopulation 1 and 2."
         table.scap <- "User-supplied outcome standard deviation under each scenario."
         print(xtable(data.frame(Scenario = 1:n.scenarios,
                           sd.table),
@@ -255,8 +258,8 @@ if (ui.outcome.type == "continuous") {
 
 <<Power_constraints, results='asis'>>=
 
-table.cap <- "User-supplied desired power. In column names, numbers 1 and 2 indicate the corresponding subpopulation."
-table.scap <- "User-supplied desired power."
+table.cap <- "User-supplied power requirements. In column names, numbers 1 and 2 indicate the corresponding subpopulation."
+table.scap <- "User-supplied power requirements."
 print(xtable(data.frame(ui.desired.power),
        caption=c(table.cap, table.scap),
        label = "tab:desired-power"),
@@ -1033,12 +1036,13 @@ grid.arrange(tsoa.bar.ss, tsoa.bar.duration, ncol=2)
     \item Bias: bias of the estimator at the end of trial.
     \item CI.COVERAGE: confidence interval coverage, which is the coverage of a nominal 95\% confidence interval centered at the estimator at the end of trial, obtained by normal approximation.
     \item CI.INFLATION: confidence interval inflation factor, which is the smallest positive number $\gamma$ such that the confidence interval has exact 95\% coverage if the interval is inflated by $\gamma$.
+    \item Delta1, Delta2: Average treatment effects (difference between mean outcomes under treatment versus control) in subpopulations 1 and 2, respectively.
     \item ESS: expected sample size.
     \item FWER: familywise error rate.
     \item HR: hazard rate.
     \item MSE: mean squared error of the estimator at the end of trial.
     \item Scenario: user-supplied outcome distribution under all treatment and subpopulation combinations.
-    \item SD: standard deviation.
+    \item VAR: variance.
     \item Subpop: subpopulation.
     \item Var: variance of the estimator at the end of trial.
 \end{itemize}
