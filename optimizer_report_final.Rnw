@@ -285,10 +285,10 @@ Table \ref{tab:1sea-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_1SEA, results='asis'>>=
 
 my.table <- data.frame(osea.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Calendar.Time.In.Years <- osea.result$optima$per.stage.sample.sizes$accrual.years
+my.table$Calendar.Time.In.Years <- osea.result$optima$per.stage.sample.sizes$outcome.years
 
-table.cap <- "Total sample size per stage for the 1SEA design and calendar times. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
-table.scap <- "Total sample size per stage for the 1SEA design and calendar times."
+table.cap <- "Total sample size per stage for the 1SEA design and calendar times of analyses. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation. Sample sizes represent the number enrolled at the time of the corresponding analysis."
+table.scap <- "Total sample size per stage for the 1SEA design and calendar times of analyses."
 print(xtable(data.frame(Stage = 1:nrow(my.table),
                         my.table),
              caption=c(table.cap, table.scap), 
@@ -433,10 +433,10 @@ Table \ref{tab:1soa-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_1SOA, results='asis'>>=
 
 my.table <- data.frame(osoa.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Calendar.Time.In.Years <- osoa.result$optima$per.stage.sample.sizes$accrual.years
+my.table$Calendar.Time.In.Years <- osoa.result$optima$per.stage.sample.sizes$outcome.years
 
-table.cap <- "Total sample size per stage for the 1SOA design and calendar times. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
-table.scap <- "Total sample size per stage for the 1SOA design and calendar times."
+table.cap <- "Total sample size per stage for the 1SOA design and calendar times of analyses. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation. Sample sizes represent the number enrolled at the time of the corresponding analysis."
+table.scap <- "Total sample size per stage for the 1SOA design and calendar times of analyses."
 print(xtable(data.frame(Stage = 1:nrow(my.table),
                         my.table),
              caption=c(table.cap, table.scap), 
@@ -578,10 +578,10 @@ Table \ref{tab:2sea-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_2SEA, results='asis'>>=
 
 my.table <- data.frame(tsea.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Calendar.Time.In.Years <- tsea.result$optima$per.stage.sample.sizes$accrual.years
+my.table$Calendar.Time.In.Years <- tsea.result$optima$per.stage.sample.sizes$outcome.years
 
-table.cap <- "Total sample size per stage for the 2SEA design and calendar times. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
-table.scap <- "Total sample size per stage for the 2SEA design and calendar times."
+table.cap <- "Total sample size per stage for the 2SEA design and calendar times of analyses. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation. Sample sizes represent the number enrolled at the time of the corresponding analysis."
+table.scap <- "Total sample size per stage for the 2SEA design and calendar times of analyses."
 print(xtable(data.frame(Stage = 1:nrow(my.table),
                         my.table),
              caption=c(table.cap, table.scap), 
@@ -811,10 +811,10 @@ Table \ref{tab:2soa-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_2SOA, results='asis'>>=
 
 my.table <- data.frame(tsoa.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Calendar.Time.In.Years <- tsoa.result$optima$per.stage.sample.sizes$accrual.years
+my.table$Calendar.Time.In.Years <- tsoa.result$optima$per.stage.sample.sizes$outcome.years
 
-table.cap <- "Total sample size per stage for the 2SOA design and calendar times. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation."
-table.scap <- "Total sample size per stage for the 2SOA design and calendar times."
+table.cap <- "Total sample size per stage for the 2SOA design and calendar times of analyses. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation. Sample sizes represent the number enrolled at the time of the corresponding analysis."
+table.scap <- "Total sample size per stage for the 2SOA design and calendar times of analyses."
 print(xtable(data.frame(Stage = 1:nrow(my.table),
                         my.table),
              caption=c(table.cap, table.scap), 
