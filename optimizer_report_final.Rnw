@@ -285,7 +285,7 @@ Table \ref{tab:1sea-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_1SEA, results='asis'>>=
 
 my.table <- data.frame(osea.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Calendar.Time.In.Years <- osea.result$optima$per.stage.sample.sizes$outcome.years
+my.table$Calendar.Time.In.Years <- osea.result$optima$analysis.times
 
 table.cap <- "Total sample size per stage for the 1SEA design and calendar times of analyses. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation. Sample sizes represent the number enrolled at the time of the corresponding analysis."
 table.scap <- "Total sample size per stage for the 1SEA design and calendar times of analyses."
@@ -433,7 +433,7 @@ Table \ref{tab:1soa-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_1SOA, results='asis'>>=
 
 my.table <- data.frame(osoa.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Calendar.Time.In.Years <- osoa.result$optima$per.stage.sample.sizes$outcome.years
+my.table$Calendar.Time.In.Years <- osoa.result$optima$analysis.times
 
 table.cap <- "Total sample size per stage for the 1SOA design and calendar times of analyses. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation. Sample sizes represent the number enrolled at the time of the corresponding analysis."
 table.scap <- "Total sample size per stage for the 1SOA design and calendar times of analyses."
@@ -578,7 +578,7 @@ Table \ref{tab:2sea-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_2SEA, results='asis'>>=
 
 my.table <- data.frame(tsea.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Calendar.Time.In.Years <- tsea.result$optima$per.stage.sample.sizes$outcome.years
+my.table$Calendar.Time.In.Years <- tsea.result$optima$analysis.times
 
 table.cap <- "Total sample size per stage for the 2SEA design and calendar times of analyses. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation. Sample sizes represent the number enrolled at the time of the corresponding analysis."
 table.scap <- "Total sample size per stage for the 2SEA design and calendar times of analyses."
@@ -669,7 +669,7 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
 
 <<ESS_2SEA, results='asis'>>=
 
-my.table <- c(tsea.result$optima$ess, sum(tsea.result$optima$size * scenario.weights))
+my.table <- c(tsea.result$optima$ess, sum(tsea.result$optima$expected.sample.size.per.scenario * scenario.weights))
 
 table.cap <- "Expected sample size (ESS) for the 2SEA design."
 table.scap <- "Expected sample size for the 2SEA design."
@@ -682,7 +682,7 @@ print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
 
 <<Duration_2SEA, results='asis'>>=
 
-my.table <- c(tsea.result$optima$duration, sum(tsea.result$optima$duration * scenario.weights))
+my.table <- c(tsea.result$optima$expected.duration.per.scenario, sum(tsea.result$optima$expected.duration.per.scenario * scenario.weights))
 
 table.cap <- "Expected duation for the 2SEA design."
 table.scap <- "Expected duration for the 2SEA design."
@@ -811,7 +811,7 @@ Table \ref{tab:2soa-alpha-allocation} gives the alpha allocation.
 <<N_per_stage_2SOA, results='asis'>>=
 
 my.table <- data.frame(tsoa.result$optima$per.stage.sample.sizes$total.n.per.stage)
-my.table$Calendar.Time.In.Years <- tsoa.result$optima$per.stage.sample.sizes$outcome.years
+my.table$Calendar.Time.In.Years <- tsoa.result$optima$analysis.times
 
 table.cap <- "Total sample size per stage for the 2SOA design and calendar times of analyses. In column names, ``A'' and ``C'' denote the treatment arm and control arm, respectively; numbers 1 and 2 indicate the corresponding subpopulation. Sample sizes represent the number enrolled at the time of the corresponding analysis."
 table.scap <- "Total sample size per stage for the 2SOA design and calendar times of analyses."
@@ -901,7 +901,7 @@ print(xtable(data.frame(Scenario = 1:n.scenarios,
 
 <<ESS_2SOA, results='asis'>>=
 
-my.table <- c(tsoa.result$optima$ess, sum(tsoa.result$optima$size * scenario.weights))
+my.table <- c(tsoa.result$optima$ess, sum(tsoa.result$optima$expected.sample.size.per.scenario * scenario.weights))
 
 table.cap <- "Expected sample size (ESS) for the 2SOA design."
 table.scap <- "Expected sample size for the 2SOA design."
@@ -914,7 +914,7 @@ print(xtable(data.frame(Scenario = c(1:n.scenarios, "average"),
 
 <<Duration_2SOA, results='asis'>>=
 
-my.table <- c(tsoa.result$optima$duration, sum(tsoa.result$optima$duration * scenario.weights))
+my.table <- c(tsoa.result$optima$expected.duration.per.scenario, sum(tsoa.result$optima$expected.duration.per.scenario * scenario.weights))
 
 table.cap <- "Expected duation for the 2SOA design."
 table.scap <- "Expected duration for the 2SOA design."

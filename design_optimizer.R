@@ -798,16 +798,16 @@ dunnett.means <-
     
     names(trial.criteria) <- criteria.names
     
-    trial.criteria$size <-
+    trial.criteria$expected.sample.size.per.scenario <-
       aggregate(sample.size*proportion~scenario,
                 FUN=sum,
                 data=trial.criteria$distribution.of.trials)[,2]
     
-    trial.criteria$duration <-
+    trial.criteria$expected.duration.per.scenario <-
       aggregate(duration*proportion~scenario,
                 FUN=sum,
                 data=trial.criteria$distribution.of.trials)[,2]
-    
+    trial.criteria$analysis.times <- per.stage.sample.sizes$outcome.years
     trial.criteria$null.hypotheses <- null.hypotheses
     trial.criteria$above.mcid <- above.mcid
     trial.criteria$per.stage.sample.sizes <- per.stage.sample.sizes
@@ -1062,12 +1062,12 @@ dunnett.survival <-
     
     names(trial.criteria) <- criteria.names
     
-    trial.criteria$size <-
+    trial.criteria$expected.sample.size.per.scenario <-
       aggregate(sample.size*proportion~scenario,
                 FUN=sum,
                 data=trial.criteria$distribution.of.trials)[,2]
     
-    trial.criteria$duration <-
+    trial.criteria$expected.duration.per.scenario <-
       aggregate(duration*proportion~scenario,
                 FUN=sum,
                 data=trial.criteria$distribution.of.trials)[,2]
@@ -1077,7 +1077,7 @@ dunnett.survival <-
     if(!non.inferiority){
       trial.criteria$above.mcid <- above.mcid
     }
-    
+    trial.criteria$analysis.times <- time
     trial.criteria$per.stage.sample.sizes <- per.stage.sample.sizes
                              
     return(trial.criteria)
@@ -1235,15 +1235,15 @@ power.penalized.weighted <-
            power.penalty=100000,
            objective.scale=1,
            optimization.target="size") {
-    stopifnot(optimization.target %in% names(trial.performance),
+    stopifnot(#optimization.target %in% names(trial.performance),
               "empirical.power" %in% names(trial.performance),
               is.numeric(objective.scale) & is.scalar(objective.scale),
               is.finite(objective.scale) & objective.scale > 0)
     
     if(optimization.target=="size"){
-      target.objective.value <- trial.performance$size
+      target.objective.value <- trial.performance$expected.sample.size.per.scenario
     } else if(optimization.target=="duration"){
-      target.objective.value <- trial.performance$size
+      target.objective.value <- trial.performance$expected.duration.per.scenario
     }
     trial.power <- cbind(trial.performance$empirical.power,trial.performance$conj.power)
     # For superiority trials, don't penalize for power in alternatives < MCID
