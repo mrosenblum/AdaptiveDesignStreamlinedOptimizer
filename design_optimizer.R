@@ -1108,15 +1108,13 @@ dunnett.wrapper <- function(outcome.type, ...){
       with(parameters,
          stopifnot(length(futility.boundaries)==
                      (n.stages-1)*(n.arms-1)*n.subgroups,
-                   n.subgroups==2,
-                   n.stages<=2))
+                   n.subgroups==2))
     } else {
       with(parameters,
            stopifnot(length(futility.boundaries)==
                        (n.stages-1)*(n.arms-1)*n.subgroups-1,
                      n.arms %in% 2:3,
-                     n.subgroups==2,
-                     n.stages<=2))
+                     n.subgroups==2))
     }
     
     dunnett.survival(...)
