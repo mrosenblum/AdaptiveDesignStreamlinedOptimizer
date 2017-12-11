@@ -5,7 +5,7 @@ library(mvtnorm)
 
 # This R file creates the necessary backend files for the optimizer to call
 # There are three key functions 
-# 1) construct.test.statistics.joint.distribution creates mean and covariance 
+# 1) construct.test.statistics.joint.distribution.OneTreatmentArm creates mean and covariance 
 # matrices associated with the vector of statistics
 # 2) get.eff.bound calculates the efficacy boundaries for the design
 # 3) design.evaluate for different vectors of test statistics calculates
@@ -33,7 +33,7 @@ library(mvtnorm)
 
 # Output: The covariance matrix associated with the vector of test statistics
 
-cov.mat.cont.bin = function(var.vec.pop.1, var.vec.pop.2,
+cov.mat.cont.bin.OneTreatmentArm = function(var.vec.pop.1, var.vec.pop.2,
                             prop.samp.vec.pop.1, prop.samp.vec.pop.2){
   
   # K is the number of stages
@@ -75,7 +75,7 @@ cov.mat.cont.bin = function(var.vec.pop.1, var.vec.pop.2,
 
 # Output covariance matrix associate with vector of test statistics
 
-cov.mat.surv = function(d.0.1, d.1.1, d.0.2, d.1.2){
+cov.mat.surv.OneTreatmentArm = function(d.0.1, d.1.1, d.0.2, d.1.2){
   
   K = length(d.0.1)
   cov.mat = matrix(0, nrow = 2 * K, ncol = 2 * K)
@@ -109,7 +109,7 @@ cov.mat.surv = function(d.0.1, d.1.1, d.0.2, d.1.2){
 #         and subpopulation j at each stage
 # Output: Covarince matrix
 
-cov.mat.surv.restrict.yes = function(d.0.1, d.1.1, d.0.2, d.1.2){
+cov.mat.surv.restrict.yes.OneTreatmentArm = function(d.0.1, d.1.1, d.0.2, d.1.2){
   
   # Creating covariance matrix (note we delete a row and a column later)
   K = length(d.0.1)
@@ -200,7 +200,7 @@ cov.mat.surv.restrict.yes = function(d.0.1, d.1.1, d.0.2, d.1.2){
 #  To get the design class (2), set restrict.enrollment = FALSE.
 #  To get the design class (3), set restrict.enrollment = TRUE.
 
-construct.test.statistics.joint.distribution <- function(analytic.n.per.stage,
+construct.test.statistics.joint.distribution.OneTreatmentArm <- function(analytic.n.per.stage,
                                                          mean.sub.pop.1=NULL,
                                                          mean.sub.pop.2=NULL,
                                                          var.vec.pop.1=NULL,
@@ -394,7 +394,7 @@ construct.test.statistics.joint.distribution <- function(analytic.n.per.stage,
         mean.vec[((i-1) * 2 + 1):((i-1) * 2 + 2)] = theta * sqrt(c((d.0.1[i] + d.1.1[i])/4, (d.0.2[i] + d.1.2[i])/4))
       }
       
-      cov.mat.used = cov.mat.surv(d.0.1, d.1.1, d.0.2, d.1.2)
+      cov.mat.used = cov.mat.surv.OneTreatmentArm(d.0.1, d.1.1, d.0.2, d.1.2)
       
       
       # Initialize the vector
@@ -544,7 +544,7 @@ construct.test.statistics.joint.distribution <- function(analytic.n.per.stage,
       information.vector.inv.matrix = matrix(c(information.vector.inv[1], NA, information.vector.inv[2:length(information.vector.inv)]), nrow = K, byrow = TRUE)
       
       
-      cov.mat.used = cov.mat.surv.restrict.yes(d.0.1, d.1.1, d.0.2, d.1.2)
+      cov.mat.used = cov.mat.surv.restrict.yes.OneTreatmentArm(d.0.1, d.1.1, d.0.2, d.1.2)
       
     } # End restrict enrollment
   } # End if outcome = survival
@@ -575,7 +575,7 @@ construct.test.statistics.joint.distribution <- function(analytic.n.per.stage,
 #        k corresponds to alpha reallocated if both treatments in other sub-pop are rejected at stage k
 
 
-get.eff.bound = function(alpha.allocation, cov.mat.used, err.tol = 10^-4, restrict.enrollment = FALSE){
+get.eff.bound.OneTreatmentArm = function(alpha.allocation, cov.mat.used, err.tol = 10^-4, restrict.enrollment = FALSE){
   
   if(restrict.enrollment == FALSE){ 
     # Number of stages
@@ -1014,7 +1014,7 @@ get.eff.bound = function(alpha.allocation, cov.mat.used, err.tol = 10^-4, restri
 #  To get the design class (2), set restrict.enrollment = FALSE.
 #  To get the design class (3), set restrict.enrollment = TRUE.
 
-design.evaluate <- function(test.statistics,
+design.evaluate.OneTreatmentArm <- function(test.statistics,
                             efficacy.boundary,
                             futility.boundary,
                             alpha.allocation,

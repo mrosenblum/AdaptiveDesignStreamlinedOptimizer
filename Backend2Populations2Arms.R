@@ -29,7 +29,7 @@ library(mvtnorm)
 
 # Output: The covariance matrix associated with the vector of test statistics
 
-cov.mat.cont.bin = function(var.vec.pop.1, var.vec.pop.2,
+cov.mat.cont.bin.TwoTreatmentArms = function(var.vec.pop.1, var.vec.pop.2,
   prop.samp.vec.pop.1, prop.samp.vec.pop.2){
   # K is the number of stages
   K = length(prop.samp.vec.pop.1)
@@ -77,7 +77,7 @@ cov.mat.cont.bin = function(var.vec.pop.1, var.vec.pop.2,
 
 # Output covariance matrix associate with vector of test statistics
 
-cov.mat.surv = function(d.0.1, d.1.1, d.2.1, d.0.2, d.1.2, d.2.2){
+cov.mat.surv.TwoTreatmentArms = function(d.0.1, d.1.1, d.2.1, d.0.2, d.1.2, d.2.2){
 
   K = length(d.0.1)
   cov.mat = matrix(0, nrow = 2 * 2 * K, ncol = 2 * 2 * K)
@@ -155,7 +155,7 @@ return(cov.mat)
 #         first subscript indicates treatment, the second sub-population and the third stage. 
 #         beta is the estimator of the treatment effect
 
-construct.test.statistics.joint.distribution <- function(analytic.n.per.stage,
+construct.test.statistics.joint.distribution.TwoTreatmentArms <- function(analytic.n.per.stage,
   mean.sub.pop.1=NULL,
   mean.sub.pop.2=NULL,
   var.vec.pop.1=NULL,
@@ -199,7 +199,7 @@ construct.test.statistics.joint.distribution <- function(analytic.n.per.stage,
         sqrt(n.pop.2[i])*(mean.sub.pop.2[3] - mean.sub.pop.2[1])/
         sqrt(var.vec.pop.2[3]+var.vec.pop.2[1]))
     }
-    cov.mat.used = cov.mat.cont.bin(var.vec.pop.1,
+    cov.mat.used = cov.mat.cont.bin.TwoTreatmentArms(var.vec.pop.1,
       var.vec.pop.2,
       prop.samp.vec.pop.1,
       prop.samp.vec.pop.2)
@@ -219,7 +219,7 @@ construct.test.statistics.joint.distribution <- function(analytic.n.per.stage,
         sqrt(n.pop.2[i])*(mean.sub.pop.2[3] - mean.sub.pop.2[1])/
         sqrt(var.vec.pop.2[3]+var.vec.pop.2[1]))
     }
-    cov.mat.used = cov.mat.cont.bin(var.vec.pop.1,
+    cov.mat.used = cov.mat.cont.bin.TwoTreatmentArms(var.vec.pop.1,
       var.vec.pop.2,
       prop.samp.vec.pop.1,
       prop.samp.vec.pop.2)
@@ -400,7 +400,7 @@ return(list(cov.mat.used=cov.mat.used,
 #        k corresponds to alpha reallocated if both treatments in other sub-pop are rejected at stage k
 
 
-get.eff.bound = function(alpha.allocation, cov.mat.used, err.tol = 10^-3){
+get.eff.bound.TwoTreatmentArms = function(alpha.allocation, cov.mat.used, err.tol = 10^-3){
   
   # Number of stages
   K = length(alpha.allocation)/2
@@ -782,7 +782,7 @@ get.eff.bound = function(alpha.allocation, cov.mat.used, err.tol = 10^-3){
 #         each column indicates at what stage the decision to reject or not reject
 #         the corresponding hypothesis is made.
 #         The third vector is the list of efficacy boundaries as outputted by get.eff.bound
-design.evaluate <- function(test.statistics,
+design.evaluate.TwoTreatmentArms <- function(test.statistics,
   efficacy.boundary,
   futility.boundary,
   alpha.allocation){

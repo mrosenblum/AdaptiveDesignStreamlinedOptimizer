@@ -41,6 +41,8 @@ if(length(bash.args)>0) {
 source(file.path(code.dir, optimizer.file))
 source(file.path(code.dir, binsearch.file))
 source(file.path(code.dir, performance.file))
+source(file.path(code.dir, OneTreatmentArm.file))
+source(file.path(code.dir, TwoTreatmentArms.file))
 
 # Load parameters from user interface
 load(file.path(data.dir, "parameters", "ui.parameters.rda"))
@@ -83,28 +85,41 @@ set.seed(initial.seed)
 
 # Source design.evaluation code corresponding to number of arms in trial
 if(n.arms==2){
-  source(file.path(code.dir, backend.1tvc.file))
+  # Computes distribution of test statistics in a given scenario,
+  # using canonical joint distribution
+  get.z.distribution <- 
+    function(...){
+      construct.test.statistics.joint.distribution.OneTreatmentArm(...)
+    }
+  # Computes efficacy stopping boundaries
+  get.efficacy.dunnett <-
+    function(...){
+      get.eff.bound.OneTreatmentArm(...)
+    }
+  # Evaluates performance of simulated trials 
+  evaluate.design.dunnett <- 
+    function(...){
+      design.evaluate.OneTreatmentArm(...)
+    }
 } else if(n.arms==3){
-  source(file.path(code.dir, backend.2tvc.file))
+  # Computes distribution of test statistics in a given scenario,
+  # using canonical joint distribution
+  get.z.distribution <- 
+    function(...){
+      construct.test.statistics.joint.distribution.TwoTreatmentArms(...)
+    }
+  # Computes efficacy stopping boundaries
+  get.efficacy.dunnett <-
+    function(...){
+      get.eff.bound.TwoTreatmentArms(...)
+    }
+  # Evaluates performance of simulated trials 
+  evaluate.design.dunnett <- 
+    function(...){
+      design.evaluate.TwoTreatmentArms(...)
+    }
 }
 # Set functions for computing design features and design evaluation
-# Computes distribution of test statistics in a given scenario,
-# using canonical joint distribution
-get.z.distribution <- 
-  function(...){
-    construct.test.statistics.joint.distribution(...)
-  }
-# Computes efficacy stopping boundaries
-get.efficacy.dunnett <-
-  function(...){
-    get.eff.bound(...)
-  }
-# Evaluates performance of simulated trials 
-evaluate.design.dunnett <- 
-  function(...){
-    design.evaluate(...)
-  }
-
 ##
 ## Format User Inputs from Graphical User Interface
 ##
