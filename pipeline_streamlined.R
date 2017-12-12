@@ -14,7 +14,7 @@ min.enrollment.period <- 0.5    # For Survival Outcomes
 default.function.scale <- 1
 default.n.scale <- 100
 default.period.scale <- 2
-default.max.iterations <- 2
+default.max.iterations <- 1000
 # default.max.iterations <- 5e4 # Use for production
 default.n.simulations <- 1e4
 default.means.temperature <- 100
