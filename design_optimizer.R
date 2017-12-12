@@ -592,7 +592,7 @@ linear.threshold.penalty <-
 
 
 
-### dunnett.means ##############################################################
+### design.performance.fixed.time.outcome.type ##############################################################
 # Description: For continuous or binary outcomes, outcomes, evaluate trial 
 #   design performance using simulated trials under each user-defined scenario
 #   and return trial criteria on convergence. Performance includes expected
@@ -635,7 +635,7 @@ linear.threshold.penalty <-
 #   n.simulations (numeric scalar): Number of simulated trials to estimate trial
 #     performance. Defaults to 10000.
 
-dunnett.means <- 
+design.performance.fixed.time.outcome.type <- 
   function(n.arms,
            n.per.arm,
            accrual.rate,
@@ -650,7 +650,10 @@ dunnett.means <-
            mcid=0,
            futility.boundaries=NULL,
            n.simulations=10000,
-           relative.efficiency=1){
+           relative.efficiency=1, 
+           construct.joint.distribution.of.test.statistics,
+           generate.efficacy.boundaries,
+           design.evaluate){
     
     n.subgroups <- length(subpopulation.sizes)
     n.stages <- length(interim.info.times) + 1*(tail(interim.info.times, 1)!=1)
@@ -660,10 +663,8 @@ dunnett.means <-
       outcome.sd <- sqrt(outcome.mean*(1-outcome.mean))
     }
     
-    efficacy.boundary.function <- get.efficacy.dunnett
     efficacy.boundary.parameters <- list(err.tol=10^-3)
-    test.procedure.function <- evaluate.design.dunnett
-    
+
     per.stage.sample.sizes <-
       get.sample.sizes.per.stage(n.arms=n.arms, 
                                  n.per.arm=n.per.arm,
@@ -716,8 +717,8 @@ dunnett.means <-
         var.vec.pop.2 <- (outcome.sd[m, c("C2", "A2", "B2")])^2
       } else {stop("Implementation of >3 arms is not currently implemented.")}
       
-      z.parameters <-
-        get.z.distribution(analytic.n.per.stage,
+      joint.distribution.of.test.statistics <-
+        construct.joint.distribution.of.test.statistics(analytic.n.per.stage,
                            mean.sub.pop.1=mean.sub.pop.1,
                            mean.sub.pop.2=mean.sub.pop.2,
                            var.vec.pop.1=var.vec.pop.1,
@@ -728,21 +729,21 @@ dunnett.means <-
       
       # Get efficacy boundaries
       efficacy.boundaries <-
-        do.call(what=efficacy.boundary.function,
-                args=c(list(cov.mat.used=z.parameters$cov.mat.used,
+        do.call(what=generate.efficacy.boundaries,
+                args=c(list(cov.mat.used=joint.distribution.of.test.statistics$cov.mat.used,
                             alpha.allocation=alpha.allocation),
                        efficacy.boundary.parameters))
       
       # Sample test statistics 
       test.statistics <- 
-        with(z.parameters,
+        with(joint.distribution.of.test.statistics,
              rmvnorm(n=n.simulations,
                      mean=non.centrality.parameter.vec,
                      sigma=cov.mat.used))
       
       # Determine which hypotheses are rejected at each stage
       test.decisions <-
-        do.call(what=test.procedure.function,
+        do.call(what=design.evaluate,
                 args=list(test.statistics=test.statistics,
                           efficacy.boundary=efficacy.boundaries,
                           ### SPECIFIC TO 2-ARM AND 3-ARM DESIGNS ###
@@ -769,9 +770,9 @@ dunnett.means <-
         names(true.estimand.value) <- c("Arm.A.Subpop.1","Arm.A.Subpop.2","Arm.B.Subpop.1","Arm.B.Subpop.2")
       }
       bias.variance.mse.ci <- compute.performance(test.statistics,
-                              cov.var.matrix=z.parameters$cov.mat.used,
+                              cov.var.matrix=joint.distribution.of.test.statistics$cov.mat.used,
                               stage.decision=test.decisions$stage.decision,
-                              information.level=z.parameters$information.vector,
+                              information.level=joint.distribution.of.test.statistics$information.vector,
                               true.estimand.value=true.estimand.value,
                               n.treatment.excluding.control=n.arms-1)
       trial.criteria.by.scenario[[m]]$bias.variance.mse.ci <- bias.variance.mse.ci 
@@ -816,7 +817,7 @@ dunnett.means <-
   }
 
 
-### dunnett.survival ###########################################################
+### design.performance.survival.outcome.type ###########################################################
 # Description: For survival outcomes, evaluate trial design performance using
 #   simulated trials under each user-defined scenario and return trial criteria
 #   on convergence. Performance includes expected sample size, power, Type I 
@@ -824,7 +825,7 @@ dunnett.means <-
 #
 #   This is done by calculating sample size per stage, and for each scenario:
 #   the multivariate normal distribution of test statistics is constructed using
-#   construct.test.statistics.joint.distribution, the stopping times and null
+#   construct.joint.distribution.of.test.statistics, the stopping times and null
 #   hypotheses rejected are computed for each simulated trial using 
 #   design.evaluate and then performance metrics are computed using
 #   get.trial.criteria.
@@ -853,7 +854,7 @@ dunnett.means <-
 #   futility.boundaries (numeric vector): futility boundaries
 #   n.simulations (numeric scalar): Number of simulated trials to estimate trial
 #     performance. Defaults to 10000.
-dunnett.survival <-
+design.performance.survival.outcome.type <-
   function(n.arms,
            accrual.rate,
            enrollment.period,
@@ -871,7 +872,10 @@ dunnett.survival <-
            restrict.enrollment=FALSE,
            boundary.to.enroll=-Inf,
            n.simulations=10000,
-           relative.efficiency=1){
+           relative.efficiency=1,
+           construct.joint.distribution.of.test.statistics,
+           generate.efficacy.boundaries,
+           design.evaluate){
     
     n.subgroups <- length(subpopulation.sizes)
     n.stages <- length(time)
@@ -888,9 +892,7 @@ dunnett.survival <-
     
     n.per.arm <- ceiling((accrual.rate*enrollment.period)/n.arms)
     
-    # Functions for Dunnett Enrollment Modification & Efficacy Boundaries
-    test.procedure.function=evaluate.design.dunnett
-    efficacy.boundary.function=get.efficacy.dunnett
+    # Functions for Enrollment Modification & Efficacy Boundaries
     efficacy.boundary.parameters=list(err.tol=10^-3)
     
     per.stage.sample.sizes <-
@@ -951,8 +953,8 @@ dunnett.survival <-
         ni.params <- NULL
       } else {stop("More than 2 arms not yet supported.")}
       
-      z.parameters <-
-        do.call(what=get.z.distribution,
+      joint.distribution.of.test.statistics <-
+        do.call(what=construct.joint.distribution.of.test.statistics,
                 args=c(ni.params,
                        list(analytic.n.per.stage=analytic.n.per.stage, 
                             outcome.type="survival",
@@ -967,22 +969,22 @@ dunnett.survival <-
 
       # Get efficacy boundaries
       efficacy.boundaries <-
-        do.call(what=efficacy.boundary.function,
-                args=c(list(cov.mat.used=z.parameters$cov.mat.used,
+        do.call(what=generate.efficacy.boundaries,
+                args=c(list(cov.mat.used=joint.distribution.of.test.statistics$cov.mat.used,
                             alpha.allocation=alpha.allocation),
                        restrict.enrollment=restrict.enrollment,
                        efficacy.boundary.parameters))
       
       # Sample test statistics 
       test.statistics <- 
-        with(z.parameters,
+        with(joint.distribution.of.test.statistics,
              rmvnorm(n=n.simulations,
                      mean=non.centrality.parameter.vec,
                      sigma=cov.mat.used))
       
       # Determine which hypotheses are rejected at each stage
       test.decisions <-
-        do.call(what=test.procedure.function,
+        do.call(what=design.evaluate,
                 args=c(list(test.statistics=test.statistics,
                           efficacy.boundary=efficacy.boundaries,
                           ### SPECIFIC TO 2-ARM AND 3-ARM DESIGNS ###
@@ -1014,9 +1016,9 @@ dunnett.survival <-
       } 
       bias.variance.mse.ci <-
           compute.performance(test.statistics,
-                              cov.var.matrix=z.parameters$cov.mat.used,
+                              cov.var.matrix=joint.distribution.of.test.statistics$cov.mat.used,
                               stage.decision=test.decisions$stage.decision,
-                              information.level=z.parameters$information.vector,
+                              information.level=joint.distribution.of.test.statistics$information.vector,
                               true.estimand.value=true.estimand.value,
                               n.treatment.excluding.control=n.arms-1,
                               restrict.enrollment=restrict.enrollment,
@@ -1085,15 +1087,15 @@ dunnett.survival <-
 
 
 
-### dunnett.wrapper ############################################################
-# Description: a generic function for calling dunnett.survival for survival
-#   outcomes or dunnett.means for continuous/binary outcomes.
+### triage.based.on.outcome.type ############################################################
+# Description: a generic function for calling design.performance.survival.outcome.type for survival
+#   outcomes or design.performance.fixed.time.outcome.type for continuous/binary outcomes.
 # 
 # Input:
 #   outcome.type (string): outcome distribution: either "continuous", "binary",
 #     or "survival"
-#   ... : other arguments passed on to either dunnett.survival or dunnett.
-dunnett.wrapper <- function(outcome.type, ...){
+#   ... : other arguments passed on to either design.performance.survival.outcome.type or design.performance.fixed.time.outcome.type
+triage.based.on.outcome.type <- function(outcome.type, ...){
   parameters=list(...)
   if(outcome.type=="survival"){
     n.scenarios <- nrow(parameters$hazard.rate)
@@ -1117,7 +1119,7 @@ dunnett.wrapper <- function(outcome.type, ...){
                      n.subgroups==2))
     }
     
-    dunnett.survival(...)
+    design.performance.survival.outcome.type(...)
   } else if (outcome.type %in% c("continuous", "binary")){
     n.scenarios <- nrow(parameters$outcome.mean)
     n.arms <- 
@@ -1136,7 +1138,7 @@ dunnett.wrapper <- function(outcome.type, ...){
                    n.subgroups==2,
                    n.stages<=2))
     
-    dunnett.means(outcome.type=outcome.type, ...)
+    design.performance.fixed.time.outcome.type(outcome.type=outcome.type, ...)
   } else {
     stop("Supported distributions are 'survival', 'continuous', and 'binary'.")
   }

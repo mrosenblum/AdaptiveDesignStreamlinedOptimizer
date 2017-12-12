@@ -14,7 +14,7 @@ min.enrollment.period <- 0.5    # For Survival Outcomes
 default.function.scale <- 1
 default.n.scale <- 100
 default.period.scale <- 2
-default.max.iterations <- 1000
+default.max.iterations <- 2
 # default.max.iterations <- 5e4 # Use for production
 default.n.simulations <- 1e4
 default.means.temperature <- 100
@@ -24,12 +24,13 @@ default.report.iteration <- 1
 default.power.penalty <- 100000
 default.boundary.to.enroll <- 1
 
+#for local testing only:
 #code.dir <- "."
 #optimizer.file <- "design_optimizer.R"
 #performance.file <- "ComputePerformanceMetrics.R"
-#binary.search.file <- "Utility_BinarySearch.R"
-#backend.1tvc.file <- "Backend2Populations1Arm.R"
-#backend.2tvc.file <- "Backend2Populations2Arms.R"
+#binsearch.file <- "Utility_BinarySearch.R"
+#OneTreatmentArm.file <- "Backend2Populations1Arm.R"
+#TwoTreatmentArms.file <- "Backend2Populations2Arms.R"
 
 # Read in bash arguments from command line - extract parameters
 bash.args <- commandArgs(trailingOnly=TRUE)
@@ -87,34 +88,34 @@ set.seed(initial.seed)
 if(n.arms==2){
   # Computes distribution of test statistics in a given scenario,
   # using canonical joint distribution
-  get.z.distribution <- 
+  construct.joint.distribution.of.test.statistics <- 
     function(...){
-      construct.test.statistics.joint.distribution.OneTreatmentArm(...)
+      construct.joint.distribution.of.test.statistics.OneTreatmentArm(...)
     }
   # Computes efficacy stopping boundaries
-  get.efficacy.dunnett <-
+  generate.efficacy.boundaries <-
     function(...){
       get.eff.bound.OneTreatmentArm(...)
     }
   # Evaluates performance of simulated trials 
-  evaluate.design.dunnett <- 
+  design.evaluate <- 
     function(...){
       design.evaluate.OneTreatmentArm(...)
     }
 } else if(n.arms==3){
   # Computes distribution of test statistics in a given scenario,
   # using canonical joint distribution
-  get.z.distribution <- 
+  construct.joint.distribution.of.test.statistics <- 
     function(...){
-      construct.test.statistics.joint.distribution.TwoTreatmentArms(...)
+      construct.joint.distribution.of.test.statistics.TwoTreatmentArms(...)
     }
   # Computes efficacy stopping boundaries
-  get.efficacy.dunnett <-
+  generate.efficacy.boundaries <-
     function(...){
       get.eff.bound.TwoTreatmentArms(...)
     }
   # Evaluates performance of simulated trials 
-  evaluate.design.dunnett <- 
+  design.evaluate <- 
     function(...){
       design.evaluate.TwoTreatmentArms(...)
     }
@@ -171,7 +172,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   n.per.arm.lower.bound <- min.n.per.arm
   #Increase upper bound if necessary to meet power requirements
   #repeat{
-  #  osea.design.performance.evaluation <- dunnett.wrapper(outcome.type=ui.type.of.outcome.data,
+  #  osea.design.performance.evaluation <- triage.based.on.outcome.type(outcome.type=ui.type.of.outcome.data,
   #                                                      n.per.arm=floor(n.per.arm.upper.bound),
   #                                                      n.arms=n.arms,
   #                                                      accrual.rate=ui.accrual.yearly.rate,
@@ -196,7 +197,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   #}
   while(n.per.arm.upper.bound-n.per.arm.lower.bound>0.1){
     candidate.n.per.arm <- mean(c(n.per.arm.lower.bound,n.per.arm.upper.bound))
-    osea.design.performance.evaluation <- dunnett.wrapper(outcome.type=ui.type.of.outcome.data,
+    osea.design.performance.evaluation <- triage.based.on.outcome.type(outcome.type=ui.type.of.outcome.data,
                                       n.per.arm=floor(candidate.n.per.arm),
                                       n.arms=n.arms,
                                       accrual.rate=ui.accrual.yearly.rate,
@@ -211,7 +212,10 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
                                                            number.of.alpha.allocation.components),
-                                      total.alpha=ui.total.alpha)
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate)
     discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
     feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
                                         discrepancy.between.desired.power.empirical.power<=0)
@@ -245,8 +249,11 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
                                                            number.of.alpha.allocation.components),
-                                      total.alpha=ui.total.alpha),
-                create.object=dunnett.wrapper,
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate),
+                create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
                 function.scale=default.function.scale,
                 parameter.scale=default.n.scale,
@@ -266,7 +273,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   enrollment.period.lower.bound <- min.enrollment.period
   feasible.max.duration <- ui.max.duration
   #repeat{
-  #  osea.design.performance.evaluation <- dunnett.wrapper(outcome.type='survival',
+  #  osea.design.performance.evaluation <- triage.based.on.outcome.type(outcome.type='survival',
   #                                                        enrollment.period=enrollment.period.upper.bound,
   #                                                        n.arms=n.arms,
   #                                                        accrual.rate=ui.accrual.yearly.rate,
@@ -296,7 +303,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   #}
   while(enrollment.period.upper.bound-enrollment.period.lower.bound>0.01){
     candidate.enrollment.period <- mean(c(enrollment.period.lower.bound,enrollment.period.upper.bound))
-    osea.design.performance.evaluation <- dunnett.wrapper(outcome.type='survival',
+    osea.design.performance.evaluation <- triage.based.on.outcome.type(outcome.type='survival',
                                       enrollment.period=candidate.enrollment.period,
                                       n.arms=n.arms,
                                       accrual.rate=ui.accrual.yearly.rate,
@@ -315,7 +322,10 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       alpha.allocation=
                                         rep(1/number.of.alpha.allocation.components,
                                             number.of.alpha.allocation.components),
-                                      total.alpha=ui.total.alpha)
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate)
     discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
     feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
                                     discrepancy.between.desired.power.empirical.power<=0)
@@ -354,8 +364,11 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       alpha.allocation=
                                         rep(1/number.of.alpha.allocation.components,
                                             number.of.alpha.allocation.components),
-                                      total.alpha=ui.total.alpha),
-                create.object=dunnett.wrapper,
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate),
+                create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
                 function.scale=default.function.scale,
                 parameter.scale=default.period.scale,
@@ -399,8 +412,11 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       futility.boundaries=NULL,
                                       relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
-                                      total.alpha=ui.total.alpha),
-                create.object=dunnett.wrapper,
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate),
+                create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
                 function.scale=default.function.scale,
                 parameter.scale=c(default.n.scale,rep(1,number.of.alpha.allocation.components)),
@@ -443,8 +459,11 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       futility.boundaries=NULL,
                                       relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
-                                      total.alpha=ui.total.alpha),
-                create.object=dunnett.wrapper,
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate),
+                create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
                 function.scale=default.function.scale,
                 parameter.scale=c(default.period.scale,rep(1,number.of.alpha.allocation.components)),
@@ -493,8 +512,11 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       n.simulations=default.n.simulations,
                                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
                                                            number.of.alpha.allocation.components),
-                                      total.alpha=ui.total.alpha),
-                create.object=dunnett.wrapper,
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate),
+                create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
                 function.scale=default.function.scale,
                 parameter.scale=default.n.scale,
@@ -539,8 +561,11 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       alpha.allocation=
                                         rep(1/number.of.alpha.allocation.components,
                                             number.of.alpha.allocation.components),
-                                      total.alpha=ui.total.alpha),
-                create.object=dunnett.wrapper,
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate),
+                create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
                 function.scale=default.function.scale,
                 parameter.scale=default.period.scale,
@@ -585,9 +610,12 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
-                                      total.alpha=ui.total.alpha
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate
                                       ),
-                create.object=dunnett.wrapper,
+                create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
                 function.scale=default.function.scale,
                 parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
@@ -633,8 +661,11 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       relative.efficiency=ui.relative.efficiency, 
                                       n.simulations=default.n.simulations,
-                                      total.alpha=ui.total.alpha),
-                create.object=dunnett.wrapper,
+                                      total.alpha=ui.total.alpha,
+                                      construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                      generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                      design.evaluate=design.evaluate),
+                create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
                 function.scale=default.function.scale,
                 parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),

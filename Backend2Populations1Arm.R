@@ -5,7 +5,7 @@ library(mvtnorm)
 
 # This R file creates the necessary backend files for the optimizer to call
 # There are three key functions 
-# 1) construct.test.statistics.joint.distribution.OneTreatmentArm creates mean and covariance 
+# 1) construct.joint.distribution.of.test.statistics.OneTreatmentArm creates mean and covariance 
 # matrices associated with the vector of statistics
 # 2) get.eff.bound calculates the efficacy boundaries for the design
 # 3) design.evaluate for different vectors of test statistics calculates
@@ -200,7 +200,7 @@ cov.mat.surv.restrict.yes.OneTreatmentArm = function(d.0.1, d.1.1, d.0.2, d.1.2)
 #  To get the design class (2), set restrict.enrollment = FALSE.
 #  To get the design class (3), set restrict.enrollment = TRUE.
 
-construct.test.statistics.joint.distribution.OneTreatmentArm <- function(analytic.n.per.stage,
+construct.joint.distribution.of.test.statistics.OneTreatmentArm <- function(analytic.n.per.stage,
                                                          mean.sub.pop.1=NULL,
                                                          mean.sub.pop.2=NULL,
                                                          var.vec.pop.1=NULL,
@@ -245,7 +245,7 @@ construct.test.statistics.joint.distribution.OneTreatmentArm <- function(analyti
             sqrt(var.vec.pop.2[2]+var.vec.pop.2[1]))    
     }
     
-    cov.mat.used = cov.mat.cont.bin(var.vec.pop.1,
+    cov.mat.used = cov.mat.cont.bin.OneTreatmentArm(var.vec.pop.1,
                                     var.vec.pop.2,
                                     prop.samp.vec.pop.1,
                                     prop.samp.vec.pop.2)
@@ -263,7 +263,7 @@ construct.test.statistics.joint.distribution.OneTreatmentArm <- function(analyti
             sqrt(var.vec.pop.2[2]+var.vec.pop.2[1]))    
     }
     
-    cov.mat.used = cov.mat.cont.bin(var.vec.pop.1,
+    cov.mat.used = cov.mat.cont.bin.OneTreatmentArm(var.vec.pop.1,
                                     var.vec.pop.2,
                                     prop.samp.vec.pop.1,
                                     prop.samp.vec.pop.2)

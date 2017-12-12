@@ -3,7 +3,7 @@ library(mvtnorm)
 
 # This R file creates the necessary backend files for the optimizer to call
 # There are three key functions 
-# 1) construct.test.statistics.joint.distribution creates mean and covariance 
+# 1) construct.joint.distribution.of.test.statistics.TwoTreatmentArms creates mean and covariance 
 # matrices associated with the vector of statistics
 # 2) get.eff.bound calculates the efficacy boundaries for the design
 # 3) design.evaluate for different vectors of test statistics calculates
@@ -155,7 +155,7 @@ return(cov.mat)
 #         first subscript indicates treatment, the second sub-population and the third stage. 
 #         beta is the estimator of the treatment effect
 
-construct.test.statistics.joint.distribution.TwoTreatmentArms <- function(analytic.n.per.stage,
+construct.joint.distribution.of.test.statistics.TwoTreatmentArms <- function(analytic.n.per.stage,
   mean.sub.pop.1=NULL,
   mean.sub.pop.2=NULL,
   var.vec.pop.1=NULL,
