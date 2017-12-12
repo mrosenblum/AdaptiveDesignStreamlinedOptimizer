@@ -313,7 +313,7 @@ construct.joint.distribution.of.test.statistics.TwoTreatmentArms <- function(ana
      mean.vec[((i-1) * 4 + 1):((i-1) * 4 + 4)] = theta * sqrt(c((d.0.1[i] + d.1.1[i])/4, (d.0.2[i] + d.1.2[i])/4, (d.0.1[i] + d.2.1[i])/4, (d.0.2[i] + d.2.2[i])/4))
    }
    
-   cov.mat.used = cov.mat.surv(d.0.1, d.1.1, d.2.1, d.0.2, d.1.2, d.2.2)
+   cov.mat.used = cov.mat.surv.TwoTreatmentArms(d.0.1, d.1.1, d.2.1, d.0.2, d.1.2, d.2.2)
  }
 
 
