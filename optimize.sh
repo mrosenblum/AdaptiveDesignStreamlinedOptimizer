@@ -59,8 +59,8 @@ function simulation_setup {
 			"optimizer.file=\"$optimizer_file\"" \
 			"performance.file=\"$performance_file\"" \
 			"binsearch.file=\"$binary_search_file\"" \
-			"backend.1tvc.file=\"$backend_1tvc_file\"" \
-			"backend.2tvc.file=\"$backend_2tvc_file\"" \
+			"OneTreatmentArm.file=\"$backend_1tvc_file\"" \
+			"TwoTreatmentArms.file=\"$backend_2tvc_file\"" \
 			"report.generator.file=\"$report_generator_file\"" \
 			"job.name=\"$JOB_NAME\"" \
 			"job.id=$JOB_ID" \
