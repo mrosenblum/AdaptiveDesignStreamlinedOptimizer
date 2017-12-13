@@ -2,15 +2,14 @@
 # Authors: Josh Betz (jbetz@jhu.edu) and Michael Rosenblum
 # 
 # 
-
 ### Fixed Parameters ###########################################################
 # Default Parameter Values - ## CONFIRM ## That they are reasonable
 library(knitr)
-default.pct.of.max <- 0.8 # Start at 80% of max sample size/enrollment period
+library(mvtnorm)
+library(plyr)
 
 min.n.per.arm <- 25       # For Continuous/Binary Outcomes
 min.enrollment.period <- 0.5    # For Survival Outcomes
-
 default.function.scale <- 1
 default.n.scale <- 100
 default.period.scale <- 2
