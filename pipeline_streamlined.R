@@ -1,27 +1,23 @@
 ### Streamlined Design Optimization Pipeline ##########
 # Authors: Josh Betz (jbetz@jhu.edu) and Michael Rosenblum
-# 
-# 
-### Fixed Parameters ###########################################################
-# Default Parameter Values - ## CONFIRM ## That they are reasonable
 library(knitr)
 library(mvtnorm)
 library(plyr)
-
+### Fixed Parameters ###########################################################
 min.n.per.arm <- 25       # For Continuous/Binary Outcomes
 min.enrollment.period <- 0.5    # For Survival Outcomes
-default.function.scale <- 1
-default.n.scale <- 100
-default.period.scale <- 2
-default.max.iterations <- 1000
-# default.max.iterations <- 5e4 # Use for production
-default.n.simulations <- 1e4
-default.means.temperature <- 100
-default.survival.temperature <- 10
-default.evals.per.temp <- 10
-default.report.iteration <- 1
-default.power.penalty <- 100000
-default.boundary.to.enroll <- 1
+simulated.annealing.parameter.function.scale <- 1
+simulated.annealing.parameter.n.scale <- 100
+simulated.annealing.parameter.period.scale <- 2
+simulated.annealing.parameter.max.iterations <- 1000
+# simulated.annealing.parameter.max.iterations <- 5e4 # Use for production
+simulated.annealing.parameter.n.simulations <- 1e4
+simulated.annealing.parameter.means.temperature <- 100
+simulated.annealing.parameter.survival.temperature <- 10
+simulated.annealing.parameter.evals.per.temp <- 10
+simulated.annealing.parameter.report.iteration <- 1
+simulated.annealing.parameter.power.penalty <- 100000
+simulated.annealing.parameter.boundary.to.enroll <- 1
 
 #for local testing only:
 #code.dir <- "."
@@ -182,7 +178,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   #                                                      outcome.sd=ui.outcome.sd,
   #                                                      mcid=ui.mcid,
   #                                                      futility.boundaries=NULL,
-  #                                                      relative.efficiency=ui.relative.efficiency,        #                                                      n.simulations=default.n.simulations,
+  #                                                      relative.efficiency=ui.relative.efficiency,        #                                                      n.simulations=simulated.annealing.parameter.n.simulations,
   #                                                      alpha.allocation=rep(1/number.of.alpha.allocation.components,
   #                                                                           number.of.alpha.allocation.components),
   #                                                      total.alpha=ui.total.alpha)
@@ -208,7 +204,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
                                       relative.efficiency=ui.relative.efficiency,
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
                                                            number.of.alpha.allocation.components),
                                       total.alpha=ui.total.alpha,
@@ -245,7 +241,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
                                       relative.efficiency=ui.relative.efficiency,    
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
                                                            number.of.alpha.allocation.components),
                                       total.alpha=ui.total.alpha,
@@ -254,14 +250,14 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       design.evaluate=design.evaluate),
                 create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
-                function.scale=default.function.scale,
-                parameter.scale=default.n.scale,
+                function.scale=simulated.annealing.parameter.function.scale,
+                parameter.scale=simulated.annealing.parameter.n.scale,
                 max.iterations=2,
-                temperature=default.means.temperature,
-                evals.per.temp=default.evals.per.temp,
-                report.iteration=default.report.iteration,
+                temperature=simulated.annealing.parameter.means.temperature,
+                evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                report.iteration=simulated.annealing.parameter.report.iteration,
                 scenario.weights=ui.scenario.weights,
-                power.penalty=default.power.penalty,
+                power.penalty=simulated.annealing.parameter.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
   
@@ -287,7 +283,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
   #                                                        mcid=ui.mcid,
   #                                                        futility.boundaries=NULL,
   #                                                        relative.efficiency=ui.relative.efficiency, 
-  #                                                         n.simulations=default.n.simulations,
+  #                                                         n.simulations=simulated.annealing.parameter.n.simulations,
   #                                                        alpha.allocation=
   #                                                          rep(1/number.of.alpha.allocation.components,
   #                                                              number.of.alpha.allocation.components),
@@ -317,7 +313,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
                                       relative.efficiency=ui.relative.efficiency, 
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       alpha.allocation=
                                         rep(1/number.of.alpha.allocation.components,
                                             number.of.alpha.allocation.components),
@@ -359,7 +355,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
                                       relative.efficiency=ui.relative.efficiency, 
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       alpha.allocation=
                                         rep(1/number.of.alpha.allocation.components,
                                             number.of.alpha.allocation.components),
@@ -369,14 +365,14 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       design.evaluate=design.evaluate),
                 create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
-                function.scale=default.function.scale,
-                parameter.scale=default.period.scale,
+                function.scale=simulated.annealing.parameter.function.scale,
+                parameter.scale=simulated.annealing.parameter.period.scale,
                 max.iterations=2,
-                temperature=default.survival.temperature,
-                evals.per.temp=default.evals.per.temp,
-                report.iteration=default.report.iteration,
+                temperature=simulated.annealing.parameter.survival.temperature,
+                evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                report.iteration=simulated.annealing.parameter.report.iteration,
                 scenario.weights=ui.scenario.weights,
-                power.penalty=default.power.penalty,
+                power.penalty=simulated.annealing.parameter.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
 }
@@ -410,21 +406,21 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
                                       relative.efficiency=ui.relative.efficiency, 
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       total.alpha=ui.total.alpha,
                                       construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
                                       generate.efficacy.boundaries=generate.efficacy.boundaries,
                                       design.evaluate=design.evaluate),
                 create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
-                function.scale=default.function.scale,
-                parameter.scale=c(default.n.scale,rep(1,number.of.alpha.allocation.components)),
-                max.iterations=default.max.iterations,
-                temperature=default.means.temperature,
-                evals.per.temp=default.evals.per.temp,
-                report.iteration=default.report.iteration,
+                function.scale=simulated.annealing.parameter.function.scale,
+                parameter.scale=c(simulated.annealing.parameter.n.scale,rep(1,number.of.alpha.allocation.components)),
+                max.iterations=simulated.annealing.parameter.max.iterations,
+                temperature=simulated.annealing.parameter.means.temperature,
+                evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                report.iteration=simulated.annealing.parameter.report.iteration,
                 scenario.weights=ui.scenario.weights,
-                power.penalty=default.power.penalty,
+                power.penalty=simulated.annealing.parameter.power.penalty,
                 power.constraints=ui.desired.power,                 
                 optimization.target=ui.optimization.target)
   
@@ -457,21 +453,21 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=NULL,
                                       relative.efficiency=ui.relative.efficiency, 
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       total.alpha=ui.total.alpha,
                                       construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
                                       generate.efficacy.boundaries=generate.efficacy.boundaries,
                                       design.evaluate=design.evaluate),
                 create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
-                function.scale=default.function.scale,
-                parameter.scale=c(default.period.scale,rep(1,number.of.alpha.allocation.components)),
-                max.iterations=default.max.iterations,
-                temperature=default.survival.temperature,
-                evals.per.temp=default.evals.per.temp,
-                report.iteration=default.report.iteration,
+                function.scale=simulated.annealing.parameter.function.scale,
+                parameter.scale=c(simulated.annealing.parameter.period.scale,rep(1,number.of.alpha.allocation.components)),
+                max.iterations=simulated.annealing.parameter.max.iterations,
+                temperature=simulated.annealing.parameter.survival.temperature,
+                evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                report.iteration=simulated.annealing.parameter.report.iteration,
                 scenario.weights=ui.scenario.weights,
-                power.penalty=default.power.penalty,
+                power.penalty=simulated.annealing.parameter.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
 }
@@ -508,7 +504,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
                                       relative.efficiency=ui.relative.efficiency, 
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
                                                            number.of.alpha.allocation.components),
                                       total.alpha=ui.total.alpha,
@@ -517,14 +513,14 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       design.evaluate=design.evaluate),
                 create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
-                function.scale=default.function.scale,
-                parameter.scale=default.n.scale,
-                max.iterations=default.max.iterations,
-                temperature=default.means.temperature,
-                evals.per.temp=default.evals.per.temp,
-                report.iteration=default.report.iteration,
+                function.scale=simulated.annealing.parameter.function.scale,
+                parameter.scale=simulated.annealing.parameter.n.scale,
+                max.iterations=simulated.annealing.parameter.max.iterations,
+                temperature=simulated.annealing.parameter.means.temperature,
+                evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                report.iteration=simulated.annealing.parameter.report.iteration,
                 scenario.weights=ui.scenario.weights,
-                power.penalty=default.power.penalty,
+                power.penalty=simulated.annealing.parameter.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
 } else { # Survival Cases
@@ -556,7 +552,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       mcid=ui.mcid,
                                       futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
                                       relative.efficiency=ui.relative.efficiency, 
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       alpha.allocation=
                                         rep(1/number.of.alpha.allocation.components,
                                             number.of.alpha.allocation.components),
@@ -566,14 +562,14 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       design.evaluate=design.evaluate),
                 create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
-                function.scale=default.function.scale,
-                parameter.scale=default.period.scale,
-                max.iterations=default.max.iterations,
-                temperature=default.survival.temperature,
-                evals.per.temp=default.evals.per.temp,
-                report.iteration=default.report.iteration,
+                function.scale=simulated.annealing.parameter.function.scale,
+                parameter.scale=simulated.annealing.parameter.period.scale,
+                max.iterations=simulated.annealing.parameter.max.iterations,
+                temperature=simulated.annealing.parameter.survival.temperature,
+                evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                report.iteration=simulated.annealing.parameter.report.iteration,
                 scenario.weights=ui.scenario.weights,
-                power.penalty=default.power.penalty,
+                power.penalty=simulated.annealing.parameter.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
 }
@@ -608,7 +604,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       outcome.sd=ui.outcome.sd,
                                       mcid=ui.mcid,
                                       relative.efficiency=ui.relative.efficiency, 
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       total.alpha=ui.total.alpha,
                                       construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
                                       generate.efficacy.boundaries=generate.efficacy.boundaries,
@@ -616,14 +612,14 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       ),
                 create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
-                function.scale=default.function.scale,
-                parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
-                max.iterations=default.max.iterations,
-                temperature=default.means.temperature,
-                evals.per.temp=default.evals.per.temp,
-                report.iteration=default.report.iteration,
+                function.scale=simulated.annealing.parameter.function.scale,
+                parameter.scale=c(simulated.annealing.parameter.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
+                max.iterations=simulated.annealing.parameter.max.iterations,
+                temperature=simulated.annealing.parameter.means.temperature,
+                evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                report.iteration=simulated.annealing.parameter.report.iteration,
                 scenario.weights=ui.scenario.weights,
-                power.penalty=default.power.penalty,
+                power.penalty=simulated.annealing.parameter.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
   
@@ -659,21 +655,21 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                                       restrict.enrollment=FALSE,
                                       mcid=ui.mcid,
                                       relative.efficiency=ui.relative.efficiency, 
-                                      n.simulations=default.n.simulations,
+                                      n.simulations=simulated.annealing.parameter.n.simulations,
                                       total.alpha=ui.total.alpha,
                                       construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
                                       generate.efficacy.boundaries=generate.efficacy.boundaries,
                                       design.evaluate=design.evaluate),
                 create.object=triage.based.on.outcome.type,
                 evaluate.object=power.penalized.weighted,
-                function.scale=default.function.scale,
-                parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
-                max.iterations=default.max.iterations,
-                temperature=default.survival.temperature,
-                evals.per.temp=default.evals.per.temp,
-                report.iteration=default.report.iteration,
+                function.scale=simulated.annealing.parameter.function.scale,
+                parameter.scale=c(simulated.annealing.parameter.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
+                max.iterations=simulated.annealing.parameter.max.iterations,
+                temperature=simulated.annealing.parameter.survival.temperature,
+                evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                report.iteration=simulated.annealing.parameter.report.iteration,
                 scenario.weights=ui.scenario.weights,
-                power.penalty=default.power.penalty,
+                power.penalty=simulated.annealing.parameter.power.penalty,
                 power.constraints=ui.desired.power,
                 optimization.target=ui.optimization.target)
 }
