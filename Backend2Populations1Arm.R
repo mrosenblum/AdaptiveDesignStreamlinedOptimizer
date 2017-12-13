@@ -1,5 +1,4 @@
-# Loading libraries
-library(mvtnorm)
+# Uses library(mvtnorm)
 
 # Comparing a single treatment to control in two disjoint sub-populations
 

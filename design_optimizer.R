@@ -1,6 +1,4 @@
-library(mvtnorm)
-library(plyr)
-
+#Uses: library(mvtnorm), library(plyr)
 #
 # See https://svn.r-project.org/R/trunk/src/appl/optim.c and ?optim for
 # details on simulated annealing.

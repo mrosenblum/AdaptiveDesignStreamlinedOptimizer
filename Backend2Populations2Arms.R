@@ -1,5 +1,4 @@
-# Loading libraries
-library(mvtnorm)
+# Uses library(mvtnorm)
 
 # This R file creates the necessary backend files for the optimizer to call
 # There are three key functions 
