@@ -24,8 +24,8 @@ simulated.annealing.parameter.boundary.to.enroll <- 1
 #optimizer.file <- "design_optimizer.R"
 #performance.file <- "ComputePerformanceMetrics.R"
 #binsearch.file <- "Utility_BinarySearch.R"
-#OneTreatmentArm.file <- "Backend2Populations1Arm.R"
-#TwoTreatmentArms.file <- "Backend2Populations2Arms.R"
+#OneTreatmentArm.file <- "DesignClass2Subpopulations1TreatmentVsControl.R"
+#TwoTreatmentArms.file <- "DesignClass2Subpopulations2TreatmentVsControl.R"
 
 # Read in bash arguments from command line - extract parameters
 bash.args <- commandArgs(trailingOnly=TRUE)
