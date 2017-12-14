@@ -34,8 +34,8 @@ pipeline_r=pipeline_streamlined.R
 optimizer_file=design_optimizer.R
 performance_file=ComputePerformanceMetrics.R
 binary_search_file=Utility_BinarySearch.R
-backend_1tvc_file=Backend2Populations1Arm.R
-backend_2tvc_file=Backend2Populations2Arms.R
+designclass1_file=DesignClass2Subpopulations1TreatmentVsControl
+designclass2_file=DesignClass2Subpopulations2TreatmentVsControl
 report_generator_file=optimizer_report_final.Rnw
 
 function simulation_setup {
@@ -59,8 +59,8 @@ function simulation_setup {
 			"optimizer.file=\"$optimizer_file\"" \
 			"performance.file=\"$performance_file\"" \
 			"binsearch.file=\"$binary_search_file\"" \
-			"OneTreatmentArm.file=\"$backend_1tvc_file\"" \
-			"TwoTreatmentArms.file=\"$backend_2tvc_file\"" \
+			"OneTreatmentArm.file=\"$designclass1_file\"" \
+			"TwoTreatmentArms.file=\"$designclass2_file\"" \
 			"report.generator.file=\"$report_generator_file\"" \
 			"job.name=\"$JOB_NAME\"" \
 			"job.id=$JOB_ID" \
