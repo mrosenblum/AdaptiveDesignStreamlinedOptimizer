@@ -692,8 +692,8 @@ design.performance.fixed.time.outcome.type <-
       kronecker(matrix(1, ncol=(n.arms-1)), outcome.mean[,control.cols])
       
 
-    null.hypotheses <- 1*(abs(mean.differences)<1e-6)
-    above.mcid <- 1*(abs(mean.differences>=mcid))
+    null.hypotheses <- 1*(mean.differences<1e-6) #Null hypotheses are of the form: mean_difference <= 0.
+    above.mcid <- 1*(mean.differences>=mcid)
     
     # In case of MCID=0:
     above.mcid[which(null.hypotheses==1, arr.ind=TRUE)] <- 0
@@ -926,11 +926,11 @@ design.performance.survival.outcome.type <-
     
     # Determine which hypotheses are truly null
     if(non.inferiority){
-      # In non-inferiority trial, null is treatment effect is inferior
+      # In non-inferiority trial, null hypothesis is that the treatment is inferior (hazard ratio greater or equal to the non-inferiority margin)
       null.hypotheses <- 1*(hazard.ratios>=ni.margin)
     } else { # Superiority
-      # In superiority trial
-      null.hypotheses <- 1*(abs(hazard.ratios-1)<1e-6)
+      # In superiority trial, the null hypothesis is that the hazard ratio is greater or equal 1.
+      null.hypotheses <- 1*(hazard.ratios>=1-1e-6)
       above.mcid <- 1*(hazard.ratios<=mcid)
       above.mcid[which(null.hypotheses==1, arr.ind=TRUE)] <- 0
     }
