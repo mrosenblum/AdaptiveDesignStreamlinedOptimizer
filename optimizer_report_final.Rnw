@@ -118,7 +118,7 @@ if (ui.outcome.type == "time-to-event") {
 #     }
 # }
 
-if (("ui.mcid" %in% ls()) & (ui.mcid > 0)) {
+if (("ui.mcid" %in% ls()) && (!is.null(ui.mcid)) && (ui.mcid > 0)) {
     MCID <- paste0("\\item Minimum clinically important difference (MCID): ", ui.mcid, ".")
 }
 
