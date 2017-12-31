@@ -326,7 +326,7 @@ Table \ref{tab:1sea-performance} gives additional performance metrics including 
 
 <<Power_1SEA, results='asis'>>=
 
-colnames(osea.result$optima$conj.power) <- "Reject_All"
+colnames(osea.result$optima$conj.power) <- "Reject_All_False_Null_Hyp"
 my.table <- cbind(osea.result$optima$empirical.power,osea.result$optima$conj.power)
 colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
 
@@ -473,7 +473,7 @@ Table \ref{tab:1soa-performance} gives additional performance metrics including 
 
 <<Power_1SOA, results='asis'>>=
 
-colnames(osoa.result$optima$conj.power) <- "Reject_All"
+colnames(osoa.result$optima$conj.power) <- "Reject_All_False_Null_Hyp"
 my.table <- cbind(osoa.result$optima$empirical.power,osoa.result$optima$conj.power)
 colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
 
@@ -624,7 +624,7 @@ Figure \ref{fig:Boxplot_ss_duration_2SEA} gives the distribution of trial sample
 
 <<Power_2SEA, results='asis'>>=
 
-colnames(tsea.result$optima$conj.power) <- "Reject_All"
+colnames(tsea.result$optima$conj.power) <- "Reject_All_False_Null_Hyp"
 my.table <- cbind(tsea.result$optima$empirical.power,tsea.result$optima$conj.power)
 colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
 
@@ -856,7 +856,7 @@ Table \ref{tab:2soa-performance} gives additional performance metrics including 
 Figure \ref{fig:Boxplot_ss_duration_2SOA} gives the distribution of trial sample size and duration. Note that the x-axis scale is not linear, because sample sizes and durations are clustered at specific values (depending on when the trial stops).
 
 <<Power_2SOA, results='asis'>>=
-colnames(tsea.result$optima$conj.power) <- "Reject_All"
+colnames(tsea.result$optima$conj.power) <- "Reject_All_False_Null_Hyp"
 my.table <- cbind(tsea.result$optima$empirical.power,tsea.result$optima$conj.power)
 colnames(my.table) <- paste("Power", colnames(my.table), sep = "_")
 
