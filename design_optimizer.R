@@ -810,7 +810,7 @@ design.performance.fixed.time.outcome.type <-
     trial.criteria$null.hypotheses <- null.hypotheses
     trial.criteria$above.mcid <- above.mcid
     trial.criteria$per.stage.sample.sizes <- per.stage.sample.sizes
-
+    trial.criteria$futility.boundaries <- futility.boundaries
     return(trial.criteria)
   }
 
@@ -1079,7 +1079,7 @@ design.performance.survival.outcome.type <-
     }
     trial.criteria$analysis.times <- time
     trial.criteria$per.stage.sample.sizes <- per.stage.sample.sizes
-                             
+    trial.criteria$futility.boundaries <- futility.boundaries
     return(trial.criteria)
   }
 
