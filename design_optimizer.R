@@ -268,10 +268,10 @@ get.sample.sizes.per.stage <-
     # Optionally warn if accrual completes before interim analysis - 
     # If all patients are enrolled before an interim analysis, sample size
     # can't be reduced by efficacy/futility stopping.
-    if(warn.last.accrual.before.interim &
-       sum(duplicated(total.n.per.stage)>0)) {
-      warning("Accrual completed before interim analyses.")
-    }
+    #if(warn.last.accrual.before.interim &
+    #   sum(duplicated(total.n.per.stage)>0)) {
+    #  warning("Accrual completed before interim analyses.")
+    #}
     
     if(sum(analytic.n.per.stage==0)>0){
       warning("Some stage did not accrue a patient in one subpopulation.")
@@ -536,7 +536,7 @@ get.trial.criteria <-
       type.1.error <- head(decisions.stages, 1)*NA
     }
     
-    distribution.of.trials <- count(decisions.stages)
+    distribution.of.trials <- plyr::count(decisions.stages)
     names(distribution.of.trials) <- c(colnames(decisions.stages), "frequency")
     distribution.of.trials$proportion <- 
       distribution.of.trials$frequency/n.simulations
@@ -735,7 +735,7 @@ design.performance.fixed.time.outcome.type <-
       # Sample test statistics 
       test.statistics <- 
         with(joint.distribution.of.test.statistics,
-             rmvnorm(n=n.simulations,
+             mvtnorm::rmvnorm(n=n.simulations,
                      mean=non.centrality.parameter.vec,
                      sigma=cov.mat.used))
       
@@ -976,7 +976,7 @@ design.performance.survival.outcome.type <-
       # Sample test statistics 
       test.statistics <- 
         with(joint.distribution.of.test.statistics,
-             rmvnorm(n=n.simulations,
+             mvtnorm::rmvnorm(n=n.simulations,
                      mean=non.centrality.parameter.vec,
                      sigma=cov.mat.used))
       
