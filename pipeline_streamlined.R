@@ -640,7 +640,7 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                     squash(x, min.enrollment.period,
                            min(ui.max.duration,
                                ui.max.size/ui.accrual.yearly.rate)),
-                    time=function(t){t1 <- squash(t[1],min.enrollment.period,feasible.max.duration-0.01); t2<-squash(t[2],t1+0.01,feasible.max.duration); return(c(t1,t2))}, 
+                    time=function(t){t1 <- squash(t[1],min.enrollment.period,feasible.max.duration-0.02); t2<-squash(t[2],t1+0.01,feasible.max.duration); return(c(t1,t2))}, 
                     alpha.allocation=reals.to.probability
                     ),
                 fixed.parameters=list(n.arms=n.arms,
