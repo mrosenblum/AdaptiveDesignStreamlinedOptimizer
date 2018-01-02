@@ -590,7 +590,7 @@ linear.threshold.penalty <-
 
 
 
-### design.performance.fixed.time.outcome.type ##############################################################
+### design.performance.continuous.or.binary.outcome.type ##############################################################
 # Description: For continuous or binary outcomes, outcomes, evaluate trial 
 #   design performance using simulated trials under each user-defined scenario
 #   and return trial criteria on convergence. Performance includes expected
@@ -633,7 +633,7 @@ linear.threshold.penalty <-
 #   n.simulations (numeric scalar): Number of simulated trials to estimate trial
 #     performance. Defaults to 10000.
 
-design.performance.fixed.time.outcome.type <- 
+design.performance.continuous.or.binary.outcome.type <- 
   function(n.arms,
            n.per.arm,
            accrual.rate,
@@ -1047,19 +1047,6 @@ design.performance.survival.outcome.type <-
       trial.criteria[[i]] <- criteria.result
     }
     
-    # Unpack list of trial criteria - Label with scenario number
-    criteria.names <- unique(unlist(lapply(trial.criteria.by.scenario, names)))
-    for(i in 1:length(criteria.names)){
-      criteria.result <- 
-        do.call(what=rbind,
-                args=lapply(trial.criteria.by.scenario, function(x)
-                  get(criteria.names[i], x)))
-      if(is.null(colnames(criteria.result))){
-        colnames(criteria.result) <- criteria.names[i]
-      }
-      trial.criteria[[i]] <- criteria.result
-    }
-    
     names(trial.criteria) <- criteria.names
     
     trial.criteria$expected.sample.size.per.scenario <-
@@ -1087,12 +1074,12 @@ design.performance.survival.outcome.type <-
 
 ### triage.based.on.outcome.type ############################################################
 # Description: a generic function for calling design.performance.survival.outcome.type for survival
-#   outcomes or design.performance.fixed.time.outcome.type for continuous/binary outcomes.
+#   outcomes or design.performance.continuous.or.binary.outcome.type for continuous/binary outcomes.
 # 
 # Input:
 #   outcome.type (string): outcome distribution: either "continuous", "binary",
 #     or "survival"
-#   ... : other arguments passed on to either design.performance.survival.outcome.type or design.performance.fixed.time.outcome.type
+#   ... : other arguments passed on to either design.performance.survival.outcome.type or design.performance.continuous.or.binary.outcome.type
 triage.based.on.outcome.type <- function(outcome.type, ...){
   parameters=list(...)
   if(outcome.type=="survival"){
@@ -1136,7 +1123,7 @@ triage.based.on.outcome.type <- function(outcome.type, ...){
                    n.subgroups==2,
                    n.stages<=2))
     
-    design.performance.fixed.time.outcome.type(outcome.type=outcome.type, ...)
+    design.performance.continuous.or.binary.outcome.type(outcome.type=outcome.type, ...)
   } else {
     stop("Supported distributions are 'survival', 'continuous', and 'binary'.")
   }
