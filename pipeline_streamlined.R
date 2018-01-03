@@ -674,6 +674,127 @@ if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
                 optimization.target=ui.optimization.target)
 }
 
+####
+# Optimize 2 Stage, Group Sequential Design, for 2 arm trials
+####
+if(n.arms==2){
+  # Computes distribution of test statistics in a given scenario,
+  # using canonical joint distribution
+  construct.joint.distribution.of.test.statistics <-
+    function(...){
+      construct.joint.distribution.of.test.statistics.GroupSequential.OneTreatmentArm(...)
+    }
+  # Computes efficacy stopping boundaries
+  generate.efficacy.boundaries <-
+    function(...){
+      get.eff.bound.GroupSequential.OneTreatmentArm(...)
+    }
+  # Evaluates performance of simulated trials
+  design.evaluate <-
+    function(...){
+      design.evaluate.GroupSequential.OneTreatmentArm(...)
+    }
+  ## Optimize:
+  if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
+    group.sequential.tsoa.result <-
+      sa.optimize(search.parameters=
+                    list(n.per.arm=ifelse(!is.null(feasible.n.per.arm),feasible.n.per.arm,max.possible.accrual),
+                         interim.info.times=c(1/2,1),
+                         futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
+                         alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                              number.of.alpha.allocation.components)
+                    ),
+                  search.transforms=
+                    # Cap sample size at minimum of the maximum specified size
+                    # and the accrual rate x maximum allowable duration
+                    list(n.per.arm=function(x)
+                      ceiling(
+                        squash(x,
+                               min.n.per.arm,
+                               min(ui.max.size, max.possible.accrual)/n.arms)),
+                      interim.info.times=function(x){c(squash(x[1],0.1,0.9),1)},
+                      alpha.allocation=reals.to.probability
+                    ),
+                  fixed.parameters=list(n.arms=n.arms,
+                                        accrual.rate=ui.accrual.yearly.rate,
+                                        delay=ui.followup.length,
+                                        subpopulation.sizes=ui.subpopulation.sizes,
+                                        outcome.type=ui.type.of.outcome.data,
+                                        outcome.mean=ui.outcome.mean,
+                                        outcome.sd=ui.outcome.sd,
+                                        mcid=ui.mcid,
+                                        relative.efficiency=ui.relative.efficiency,
+                                        n.simulations=simulated.annealing.parameter.n.simulations,
+                                        total.alpha=ui.total.alpha,
+                                        construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                        generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                        design.evaluate=design.evaluate
+                  ),
+                  create.object=triage.based.on.outcome.type,
+                  evaluate.object=power.penalized.weighted,
+                  function.scale=simulated.annealing.parameter.function.scale,
+                  parameter.scale=c(simulated.annealing.parameter.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
+                  max.iterations=simulated.annealing.parameter.max.iterations,
+                  temperature=simulated.annealing.parameter.means.temperature,
+                  evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                  report.iteration=simulated.annealing.parameter.report.iteration,
+                  scenario.weights=ui.scenario.weights,
+                  power.penalty=simulated.annealing.parameter.power.penalty,
+                  power.constraints=ui.desired.power,
+                  optimization.target=ui.optimization.target)
+    
+  } else { # Survival Cases
+    group.sequential.tsoa.result <-
+      sa.optimize(search.parameters=
+                    list(enrollment.period=ifelse(!is.null(feasible.enrollment.period),feasible.enrollment.period,
+                                                  min(feasible.max.duration,
+                                                      ui.max.size/ui.accrual.yearly.rate)),
+                         time=c(feasible.max.duration/2,feasible.max.duration),
+                         futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
+                         alpha.allocation=
+                           rep(1/number.of.alpha.allocation.components,
+                               number.of.alpha.allocation.components)
+                    ),
+                  search.transforms=
+                    list(enrollment.period=function(x)
+                      squash(x, min.enrollment.period,
+                             min(ui.max.duration,
+                                 ui.max.size/ui.accrual.yearly.rate)),
+                      time=function(t){t1 <- squash(t[1],0.01,feasible.max.duration-0.02); t2<-squash(t[2],t1+0.01,feasible.max.duration); return(c(t1,t2))},
+                      alpha.allocation=reals.to.probability
+                    ),
+                  fixed.parameters=list(n.arms=n.arms,
+                                        accrual.rate=ui.accrual.yearly.rate,
+                                        subpopulation.sizes=ui.subpopulation.sizes,
+                                        outcome.type='survival',
+                                        non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
+                                        hazard.rate=ui.hazard.rate,
+                                        max.follow=Inf,
+                                        censoring.rate=ui.time.to.event.censoring.rate,
+                                        ni.margin=ui.time.to.event.non.inferiority.trial.margin,
+                                        restrict.enrollment=FALSE,
+                                        mcid=ui.mcid,
+                                        relative.efficiency=ui.relative.efficiency,
+                                        n.simulations=simulated.annealing.parameter.n.simulations,
+                                        total.alpha=ui.total.alpha,
+                                        construct.joint.distribution.of.test.statistics=construct.joint.distribution.of.test.statistics,
+                                        generate.efficacy.boundaries=generate.efficacy.boundaries,
+                                        design.evaluate=design.evaluate),
+                  create.object=triage.based.on.outcome.type,
+                  evaluate.object=power.penalized.weighted,
+                  function.scale=simulated.annealing.parameter.function.scale,
+                  parameter.scale=c(simulated.annealing.parameter.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
+                  max.iterations=simulated.annealing.parameter.max.iterations,
+                  temperature=simulated.annealing.parameter.survival.temperature,
+                  evals.per.temp=simulated.annealing.parameter.evals.per.temp,
+                  report.iteration=simulated.annealing.parameter.report.iteration,
+                  scenario.weights=ui.scenario.weights,
+                  power.penalty=simulated.annealing.parameter.power.penalty,
+                  power.constraints=ui.desired.power,
+                  optimization.target=ui.optimization.target)
+  }
+}
+
 setwd(file.path(data.dir,"results"))
-save(osea.result,osoa.result,tsea.result,tsoa.result,file="optimizer_output.rda")
+save(osea.result,osoa.result,tsea.result,tsoa.result,group.sequential.tsoa.result,file="optimizer_output.rda")
 knit(file.path(code.dir,report.generator.file),output="trial_design_performance_report.tex")
