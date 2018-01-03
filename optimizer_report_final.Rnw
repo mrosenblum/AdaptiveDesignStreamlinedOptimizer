@@ -573,6 +573,8 @@ Table \ref{tab:2sea-n-per-stage} gives sample size and calendar time for each st
 
 Table \ref{tab:2sea-alpha-allocation} gives the alpha allocation.
 
+Table \ref{tab:2sea-futility-boundaries} gives the futility boundaries.
+
 % Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
 
 <<N_per_stage_2SEA, results='asis'>>=
@@ -603,6 +605,18 @@ print(xtable(data.frame(Stage = 1:nrow(alpha.allocation),
 include.rownames=FALSE)
 @
 
+<<Futility_Boundaries_2SEA, results='asis'>>=
+futility.boundaries <- as.data.frame(matrix(c(tsea.result$parameters$futility.boundaries,NA,NA), ncol = n.subpopulation, byrow = T))
+names(futility.boundaries) <- paste0("Subpop", 1:n.subpopulation)
+table.cap <- "Futility boundaries for the 2SEA design. No values are given for the final stage since futility boundaries only apply at earlier stages."
+table.scap <- "Futility boundaries for the 2SEA design."
+print(xtable(data.frame(Stage = 1:nrow(futility.boundaries),
+                  futility.boundaries),
+       digits=c(0, 0, rep(4, n.subpopulation)),
+       caption=c(table.cap, table.scap),
+       label = "tab:2sea-futility-boundaries"),
+include.rownames=FALSE)
+@
 
 \subsection{Performance of the 2SEA design}
 
@@ -806,6 +820,8 @@ Table \ref{tab:2soa-n-per-stage} gives sample size and calendar time for each st
 
 Table \ref{tab:2soa-alpha-allocation} gives the alpha allocation.
 
+Table \ref{tab:2soa-futility-boundaries} gives the futility boundaries.
+
 % Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
 
 <<N_per_stage_2SOA, results='asis'>>=
@@ -836,6 +852,18 @@ print(xtable(data.frame(Stage = 1:nrow(alpha.allocation),
 include.rownames=FALSE)
 @
 
+<<Futility_Boundaries_2SOA, results='asis'>>=
+futility.boundaries <- as.data.frame(matrix(c(tsoa.result$parameters$futility.boundaries,NA,NA), ncol = n.subpopulation, byrow = T))
+names(futility.boundaries) <- paste0("Subpop", 1:n.subpopulation)
+table.cap <- "Futility boundaries for the 2SEA design. No values are given for the final stage since futility boundaries only apply at earlier stages."
+table.scap <- "Futility boundaries for the 2SEA design."
+print(xtable(data.frame(Stage = 1:nrow(futility.boundaries),
+                  futility.boundaries),
+       digits=c(0, 0, rep(4, n.subpopulation)),
+       caption=c(table.cap, table.scap),
+       label = "tab:2soa-futility-boundaries"),
+include.rownames=FALSE)
+@
 
 \subsection{Performance of the 2SOA design}
 
