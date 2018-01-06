@@ -39,6 +39,7 @@ source(file.path(code.dir, binsearch.file))
 source(file.path(code.dir, performance.file))
 source(file.path(code.dir, OneTreatmentArm.file))
 source(file.path(code.dir, TwoTreatmentArms.file))
+source(file.path(code.dir, GroupSequentialOneTreatmentArm.file))
 
 # Load parameters from user interface
 load(file.path(data.dir, "parameters", "ui.parameters.rda"))

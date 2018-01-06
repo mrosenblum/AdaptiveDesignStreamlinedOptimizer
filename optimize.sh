@@ -36,6 +36,7 @@ performance_file=ComputePerformanceMetrics.R
 binary_search_file=Utility_BinarySearch.R
 designclass1_file=DesignClass2Subpopulations1TreatmentVsControl.R
 designclass2_file=DesignClass2Subpopulations2TreatmentVsControl.R
+designclass3_file=DesignClassGroupSequential2Subpopulations1TreatmentVsControl.R
 report_generator_file=optimizer_report_final.Rnw
 
 function simulation_setup {
@@ -61,6 +62,7 @@ function simulation_setup {
 			"binsearch.file=\"$binary_search_file\"" \
 			"OneTreatmentArm.file=\"$designclass1_file\"" \
 			"TwoTreatmentArms.file=\"$designclass2_file\"" \
+			"GroupSequentialOneTreatmentArm.file=\"$designclass3_file\"" \
 			"report.generator.file=\"$report_generator_file\"" \
 			"job.name=\"$JOB_NAME\"" \
 			"job.id=$JOB_ID" \
