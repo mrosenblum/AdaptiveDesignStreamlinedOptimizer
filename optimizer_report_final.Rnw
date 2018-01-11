@@ -855,8 +855,8 @@ include.rownames=FALSE)
 <<Futility_Boundaries_2SOA, results='asis'>>=
 futility.boundaries <- as.data.frame(matrix(c(tsoa.result$parameters$futility.boundaries,NA,NA), ncol = n.subpopulation, byrow = T))
 names(futility.boundaries) <- paste0("Subpop", 1:n.subpopulation)
-table.cap <- "Futility boundaries for the 2SEA design. No values are given for the final stage since futility boundaries only apply at earlier stages."
-table.scap <- "Futility boundaries for the 2SEA design."
+table.cap <- "Futility boundaries for the 2SOA design. No values are given for the final stage since futility boundaries only apply at earlier stages."
+table.scap <- "Futility boundaries for the 2SOA design."
 print(xtable(data.frame(Stage = 1:nrow(futility.boundaries),
                   futility.boundaries),
        digits=c(0, 0, rep(4, n.subpopulation)),
