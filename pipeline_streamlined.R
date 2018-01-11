@@ -10,6 +10,7 @@ simulated.annealing.parameter.function.scale <- 1
 simulated.annealing.parameter.n.scale <- 100
 simulated.annealing.parameter.period.scale <- 2
 simulated.annealing.parameter.max.iterations <- 1000
+if(n.arms ==3){simulated.annealing.parameter.max.iterations <- 10} # Since 3 arm designs require substantially more computation time
 # simulated.annealing.parameter.max.iterations <- 5e4 # Use for production
 simulated.annealing.parameter.n.simulations <- 1e4
 simulated.annealing.parameter.means.temperature <- 100
