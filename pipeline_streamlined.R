@@ -798,5 +798,8 @@ if(n.arms==2){
 }
 
 setwd(file.path(data.dir,"results"))
-save(osea.result,osoa.result,tsea.result,tsoa.result,group.sequential.tsoa.result,file="optimizer_output.rda")
+if(n.arms==2){
+save(osea.result,osoa.result,tsea.result,tsoa.result,group.sequential.tsoa.result,file="optimizer_output.rda")} else {
+  save(osea.result,osoa.result,tsea.result,tsoa.result,file="optimizer_output.rda")
+}
 knit(file.path(code.dir,report.generator.file),output="trial_design_performance_report.tex")
