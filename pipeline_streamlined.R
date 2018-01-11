@@ -10,7 +10,6 @@ simulated.annealing.parameter.function.scale <- 1
 simulated.annealing.parameter.n.scale <- 100
 simulated.annealing.parameter.period.scale <- 2
 simulated.annealing.parameter.max.iterations <- 1000
-if(ui.n.arms==3){simulated.annealing.parameter.max.iterations <- 10} # Since 3 arm designs require substantially more computation time
 # simulated.annealing.parameter.max.iterations <- 5e4 # Use for production
 simulated.annealing.parameter.n.simulations <- 1e4
 simulated.annealing.parameter.means.temperature <- 100
@@ -71,6 +70,7 @@ isa.start.time <- proc.time()
 ### NOTE: restricted to two subpopulations ###
 n.subpopulations <- 2 
 n.arms <- ui.n.arms
+if(n.arms==3){simulated.annealing.parameter.max.iterations <- 10} # Since 3 arm designs require substantially more computation time
 ui.subpopulation.sizes <- c(ui.subpopulation.1.size, 1-ui.subpopulation.1.size)
 # If random seed is supplied, specify seeds. Otherwise pseudorandom seeds
 # are chosen based on the initial RNG state.
