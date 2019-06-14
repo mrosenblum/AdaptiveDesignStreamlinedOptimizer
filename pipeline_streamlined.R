@@ -70,7 +70,7 @@ isa.start.time <- proc.time()
 ### NOTE: restricted to two subpopulations ###
 n.subpopulations <- 2 
 n.arms <- ui.n.arms
-if(n.arms==3){simulated.annealing.parameter.max.iterations <- 2} # Since 3 arm designs require substantially more computation time
+if(n.arms==3){simulated.annealing.parameter.max.iterations <- 10} # Since 3 arm designs require substantially more computation time
 ui.subpopulation.sizes <- c(ui.subpopulation.1.size, 1-ui.subpopulation.1.size)
 # If random seed is supplied, specify seeds. Otherwise pseudorandom seeds
 # are chosen based on the initial RNG state.
