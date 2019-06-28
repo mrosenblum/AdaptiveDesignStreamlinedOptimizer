@@ -1,0 +1,700 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Optimizer Report - Optimization of Multi-Arm Adaptive Enrichment Trials
+% Author: Josh Betz (jbetz@jhu.edu), Tianchen Qian (qiantianchen.thu@gmail.com)
+% History:
+%  0.0 - 2016-11-16 - Active Development
+%  1.0 - 2017.09.19 - Simplify Report
+%
+% Notes: This is a program meant to read in the results of optimization and
+% present them.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Acronyms:
+%
+%     1SEA (osea): One-Stage Equal Alpha Design
+%     1SOA (osoa): One-Stage Optimized Alpha Design
+%     2SEA (tsea): Two-Stage Equal Alpha Design
+%     2SOA (tsoa): Two-Stage Optimal Alpha Design
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TeX Packages
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage[margin = 0.75in]{geometry}
+\usepackage{wallpaper}    % Watermark
+%\usepackage{pdflscape}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\numberwithin{table}{section}
+\numberwithin{figure}{section}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+
+
+
+
+
+
+
+\clearpage
+
+\title{Performance Comparison of Optimized Adaptive Enrichment Designs Versus Standard Designs}
+\maketitle
+\section{Introduction}
+
+Four optimized designs are presented in this report:
+\begin{itemize}
+    \item 1SEA: the optimal 1-stage design with equal alpha allocation to all hypotheses; 
+    \item 1SOA: the optimal 1-stage design with alpha allocation chosen by optimization;
+    \item 2SEA: the optimal 2-stage design with equal alpha allocation to all hypotheses and futility boundaries chosen by optimization;
+    \item 2SOA: the optimal 2-stage design with interim analysis timing, futility boundaries, and alpha allocation all chosen by optimization.
+\end{itemize}
+Each design was optimized to minimize the expected sample size weighted by user-supplied weights over a collection of hypothetical treatment effect scenarios, subject to user-supplied constraints on power and Type I error. See Section \ref{sec:user-supplied-parameters} for the full list of user-supplied parameters.
+
+Details of the design space we searched over and the optimization method can be found in the following papers:
+\begin{itemize}
+\item (For one treatment versus one control) Betz, Josh; Steingrimsson, Jon Arni; Qian, Tianchen; and Rosenblum, Michael. COMPARISON OF ADAPTIVE RANDOMIZED TRIAL DESIGNS FOR TIME-TO-EVENT OUTCOMES THAT EXPAND VERSUS RESTRICT ENROLLMENT CRITERIA, TO TEST NON-INFERIORITY (September 2017). Johns Hopkins University, Dept. of Biostatistics Working Papers. Working Paper 289. \url{http://biostats.bepress.com/jhubiostat/paper289}
+\item (For two treatments versus one control) Steingrimsson, Jon Arni; Betz, Joshua; Qian, Tiachen; and Rosenblum, Michael. OPTIMIZED ADAPTIVE ENRICHMENT DESIGNS FOR MULTI-ARM TRIALS: LEARNING WHICH SUBPOPULATIONS BENEFIT FROM DIFFERENT TREATMENTS (September 2017). Johns Hopkins University, Dept. of Biostatistics Working Papers. Working Paper 288. \url{http://biostats.bepress.com/jhubiostat/paper288}
+\end{itemize}
+
+
+\subsection{User-Supplied Parameters} \label{sec:user-supplied-parameters}
+
+Below is a list of user-supplied parameters, which are inputs to the trial design optimizer.
+\begin{itemize}
+    \item Number of study arms: 3.
+    \item Type of outcome data: continuous.
+    
+    \item Subpopulation 1 proportion: 0.49.
+    \item Familywise Type I error rate: 0.05.
+    \item Maximum sample size: 4000.
+    \item Maximum duration: 10.
+    \item Enrollment rate per year (all arms combined): 500.
+    \item Length of followup: 0.1.
+    \item Optimization target: size.
+    \item Censoring rate: 0.
+    \item Minimum clinically important difference (MCID): 15.
+    \item Assume precision gain from adjusting for baseline variables?: FALSE.
+    \item If assumed precision gain from baseline variables, relative efficiency = 1.
+   %  \item Maximum Number of Stages: ui.max.stages
+   % \item Maxmimum Number of Different Designs to Search Over: ui.sann.
+   % \item Include Designs that Start Enrolling only Subpop 1: ui.include.designs.start.subpop.1
+    \item Distribution of outcomes assumed by the user, used to define power requirements and expected sample size and duration: see Tables \ref{tab:ui-outcome-mean} and \ref{tab:ui-outcome-sd}.
+    \item Power requirements: see Table \ref{tab:desired-power}.
+    
+\end{itemize}
+
+
+
+% latex table generated in R 3.5.1 by xtable 1.8-3 package
+% Fri Jun 14 13:25:33 2019
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrrr}
+  \hline
+Scenario & weight & control\_S1 & control\_S2 & treatmentA\_S1 & treatmentA\_S2 & treatmentB\_S1 & treatmentB\_S2 \\ 
+  \hline
+1 & 1.00 & 0.00 & 0.00 & 0.00 & 0.00 & 15.00 & 15.00 \\ 
+   \hline
+\end{tabular}
+\caption[User-supplied outcome mean under each scenario.]{User-supplied outcome mean under each scenario. In column names, ``S1'' and ``S2'' indicate subpopulation 1 and 2.} 
+\label{tab:ui-outcome-mean}
+\end{table}
+% latex table generated in R 3.5.1 by xtable 1.8-3 package
+% Fri Jun 14 13:25:33 2019
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrr}
+  \hline
+Scenario & control\_S1 & control\_S2 & treatmentA\_S1 & treatmentA\_S2 & treatmentB\_S1 & treatmentB\_S2 \\ 
+  \hline
+  1 & 3600.00 & 3600.00 & 3600.00 & 3600.00 & 3600.00 & 3600.00 \\ 
+   \hline
+\end{tabular}
+\caption[User-supplied outcome standard deviation under each scenario.]{User-supplied variance (VAR) under each scenario. In column names, ``S1'' and ``S2'' indicate subpopulation 1 and 2.} 
+\label{tab:ui-outcome-sd}
+\end{table}
+
+
+
+
+% latex table generated in R 3.5.1 by xtable 1.8-3 package
+% Fri Jun 14 13:25:33 2019
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrr}
+  \hline
+Pow\_H.0.1A. & Pow\_H.0.2A. & Pow\_H.0.1B. & Pow\_H.0.2B. & Pow\_Reject\_all \\ 
+  \hline
+0.00 & 0.00 & 0.00 & 0.00 & 0.80 \\ 
+   \hline
+\end{tabular}
+\caption[User-supplied power requirements.]{User-supplied power requirements. In column names, numbers 1 and 2 indicate the corresponding subpopulation.} 
+\label{tab:desired-power}
+\end{table}
+
+
+
+
+
+\clearpage
+\section{1SEA design}
+
+\subsection{Specification of the 1SEA design}
+
+Here we give the specification of the optimal 1SEA design.
+
+Table \ref{tab:1sea-n-per-stage} gives sample size and calendar time for each stage.
+
+Table \ref{tab:1sea-alpha-allocation} gives the alpha allocation.
+
+% Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Stage = 1:nrow(my.table), my.table): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Stage = 1:nrow(alpha.allocation), alpha.allocation): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+
+\subsection{Performance of the 1SEA design}
+
+% All results are averaged over n.simulation simulations.
+
+Table \ref{tab:1sea-power} lists the empirical power.
+
+Table \ref{tab:1sea-fwer} lists the empirical familywise Type I error (FWER).
+
+Table \ref{tab:1sea-typeIerror} lists the empirical Type I error.
+
+Table \ref{tab:1sea-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
+
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `colnames<-`(`*tmp*`, value = "{}Reject\_All\_False\_Null\_Hyp"{}): attempt to set 'colnames' on an object with less than two dimensions}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `colnames<-`(`*tmp*`, value = "{}Power\_"{}): attempt to set 'colnames' on an object with less than two dimensions}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `colnames<-`(`*tmp*`, value = "{}Familywise Type I Error Rate"{}): attempt to set 'colnames' on an object with less than two dimensions}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(my.table) <- "{}Familywise Type I error rate"{}: attempt to set an attribute on NULL}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `colnames<-`(`*tmp*`, value = "{}TypeIerror\_"{}): attempt to set 'colnames' on an object with less than two dimensions}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, scenario, value = c(1L, 1L, 1L, 1L)): replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, subpopulation, value = c(1L, 2L, 1L, : replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, treatment, value = c("{}A"{}, "{}A"{}, "{}B"{}, : replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = scenario, Treatment = treatment, Subpop = subpopulation, : object 'scenario' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in display[ints] <- "{}d"{}: invalid subscript type 'list'}}\end{kframe}
+
+
+
+
+
+
+
+
+
+
+\clearpage
+\section{1SOA design}
+
+\subsection{Specification of the 1SOA design}
+
+Here we give the specification of the optimal 1SOA design.
+
+Table \ref{tab:1soa-n-per-stage} gives sample size and calendar time for each stage.
+
+Table \ref{tab:1soa-alpha-allocation} gives the alpha allocation.
+
+% Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(osoa.result\$optima\$per.stage.sample.sizes\$total.n.per.stage): object 'osoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'osoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Stage = 1:nrow(my.table), my.table): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in matrix(osoa.result\$parameters\$alpha.allocation * ui.total.alpha, : object 'osoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Stage = 1:nrow(alpha.allocation), alpha.allocation): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+
+\subsection{Performance of the 1SOA design}
+
+% All results are averaged over n.simulation simulations.
+
+Table \ref{tab:1soa-power} lists the empirical power.
+
+Table \ref{tab:1soa-fwer} lists the empirical familywise Type I error (FWER).
+
+Table \ref{tab:1soa-typeIerror} lists the empirical Type I error.
+
+Table \ref{tab:1soa-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in colnames(osoa.result\$optima\$conj.power) <- "{}Reject\_All\_False\_Null\_Hyp"{}: object 'osoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in cbind(osoa.result\$optima\$empirical.power, osoa.result\$optima\$conj.power): object 'osoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(x) <- value: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'osoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(x) <- value: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(my.table) <- "{}Familywise Type I error rate"{}: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'osoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(x) <- value: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in unlist(osoa.result\$optima\$bias.variance.mse.ci[i.scenario, i.arm.pop]): object 'osoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'osoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, scenario, value = c(1L, 1L, 1L, 1L)): replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, subpopulation, value = c(1L, 2L, 1L, : replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, treatment, value = c("{}A"{}, "{}A"{}, "{}B"{}, : replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = scenario, Treatment = treatment, Subpop = subpopulation, : object 'scenario' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in display[ints] <- "{}d"{}: invalid subscript type 'list'}}\end{kframe}
+
+
+
+
+
+
+
+
+\clearpage
+\section{2SEA design}
+
+\subsection{Specification of the 2SEA design}
+
+Here we give the specification of the optimal 2SEA design.
+
+Table \ref{tab:2sea-n-per-stage} gives sample size and calendar time for each stage.
+
+Table \ref{tab:2sea-alpha-allocation} gives the alpha allocation.
+
+Table \ref{tab:2sea-futility-boundaries} gives the futility boundaries.
+
+% Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(tsea.result\$optima\$per.stage.sample.sizes\$total.n.per.stage): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Stage = 1:nrow(my.table), my.table): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in matrix(tsea.result\$parameters\$alpha.allocation * ui.total.alpha, : object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Stage = 1:nrow(alpha.allocation), alpha.allocation): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in matrix(c(tsea.result\$parameters\$futility.boundaries, NA, NA), : object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(futility.boundaries) <- paste0("{}Subpop"{}, 1:n.subpopulation): object 'futility.boundaries' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in nrow(futility.boundaries): object 'futility.boundaries' not found}}\end{kframe}
+
+\subsection{Performance of the 2SEA design}
+
+% All results are averaged over n.simulation simulations.
+
+Table \ref{tab:2sea-power} lists the empirical power.
+
+Table \ref{tab:2sea-fwer} lists the empirical familywise Type I error (FWER).
+
+Table \ref{tab:2sea-typeIerror} lists the empirical Type I error.
+
+Table \ref{tab:2sea-ess} lists the expected sample size.
+
+Table \ref{tab:2sea-duration} lists the expected duration.
+
+Table \ref{tab:2sea-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
+
+Figure \ref{fig:Boxplot_ss_duration_2SEA} gives the distribution of trial sample size and duration. Note that the x-axis scale is not linear, because sample sizes and durations are clustered at specific values (depending on when the trial stops).
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in colnames(tsea.result\$optima\$conj.power) <- "{}Reject\_All\_False\_Null\_Hyp"{}: object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in cbind(tsea.result\$optima\$empirical.power, tsea.result\$optima\$conj.power): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(x) <- value: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(x) <- value: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(my.table) <- "{}Familywise Type I error rate"{}: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(x) <- value: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = c(1:n.scenarios, "{}average"{}), ESS = my.table): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = c(1:n.scenarios, "{}average"{}), Duration = my.table): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in unlist(tsea.result\$optima\$bias.variance.mse.ci[i.scenario, i.arm.pop]): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, scenario, value = c(1L, 1L, 1L, 1L)): replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, subpopulation, value = c(1L, 2L, 1L, : replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, treatment, value = c("{}A"{}, "{}A"{}, "{}B"{}, : replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = scenario, Treatment = treatment, Subpop = subpopulation, : object 'scenario' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in display[ints] <- "{}d"{}: invalid subscript type 'list'}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in distribution.of.trials[is.na(distribution.of.trials)] <- 0: object 'distribution.of.trials' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in aggregate(distribution.of.trials\$proportion, by = list(distribution.of.trials\$scenario, : object 'distribution.of.trials' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(plot.table.ss) <- c("{}scenario"{}, "{}sample.size"{}, "{}proportion"{}): object 'plot.table.ss' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in aggregate(distribution.of.trials\$proportion, by = list(distribution.of.trials\$scenario, : object 'distribution.of.trials' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(plot.table.duration) <- c("{}scenario"{}, "{}duration"{}, "{}proportion"{}): object 'plot.table.duration' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in ggplot(aes(y = proportion, x = factor(sample.size), fill = factor(scenario)), : object 'plot.table.ss' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in ggplot(aes(y = proportion, x = factor(neaten(duration, 2)), fill = factor(scenario)), : object 'plot.table.duration' not found}}\end{kframe}
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in arrangeGrob(...): object 'tsea.bar.ss' not found}}\end{kframe}
+\end{knitrout}
+
+
+
+
+
+
+\clearpage
+\section{2SOA design}
+
+\subsection{Specification of the 2SOA design}
+
+Here we give the specification of the optimal 2SOA design.
+
+Table \ref{tab:2soa-n-per-stage} gives sample size and calendar time for each stage.
+
+Table \ref{tab:2soa-alpha-allocation} gives the alpha allocation.
+
+Table \ref{tab:2soa-futility-boundaries} gives the futility boundaries.
+
+% Table [to fill: see question in my email] gives the futility boundaries. (this is only useful for two stage designs)
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(tsoa.result\$optima\$per.stage.sample.sizes\$total.n.per.stage): object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Stage = 1:nrow(my.table), my.table): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in matrix(tsoa.result\$parameters\$alpha.allocation * ui.total.alpha, : object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Stage = 1:nrow(alpha.allocation), alpha.allocation): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in matrix(c(tsoa.result\$parameters\$futility.boundaries, NA, NA), : object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(futility.boundaries) <- paste0("{}Subpop"{}, 1:n.subpopulation): object 'futility.boundaries' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in nrow(futility.boundaries): object 'futility.boundaries' not found}}\end{kframe}
+
+\subsection{Performance of the 2SOA design}
+
+% All results are averaged over n.simulation simulations.
+
+Table \ref{tab:2soa-power} lists the empirical power.
+
+Table \ref{tab:2soa-fwer} lists the empirical familywise Type I error (FWER).
+
+Table \ref{tab:2soa-typeIerror} lists the empirical Type I error.
+
+Table \ref{tab:2soa-ess} lists the expected sample size.
+
+Table \ref{tab:2soa-duration} lists the expected duration.
+
+Table \ref{tab:2soa-performance} gives additional performance metrics including bias, variance, mean-squared error, and confidence interval coverage. Under each scenario, for each treatment-subpopulation combination, the table lists the bias, variance (Var), and mean-squared error (MSE) for the estimator. It also lists the confidence interval coverage (CI.COVERAGE) and confidence interval inflation factor (CI.INFLATION), where the 95\% nominal confidence interval is obtained by normal approximation. Confidence interval coverage denotes the probability that the truth is contained in the 95\% confidence interval. Confidence interval inflation factor is the minimal number that the 95\% nominal confidence interval needs to be multiplied by, in order to have actual 95\% coverage. (CI.COVERAGE $>$ 1 means that the 95\% nominal confidence interval is anti-conservative.)
+
+Figure \ref{fig:Boxplot_ss_duration_2SOA} gives the distribution of trial sample size and duration. Note that the x-axis scale is not linear, because sample sizes and durations are clustered at specific values (depending on when the trial stops).
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in colnames(tsea.result\$optima\$conj.power) <- "{}Reject\_All\_False\_Null\_Hyp"{}: object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in cbind(tsea.result\$optima\$empirical.power, tsea.result\$optima\$conj.power): object 'tsea.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(x) <- value: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(x) <- value: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(my.table) <- "{}Familywise Type I error rate"{}: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(x) <- value: 'names' attribute [1] must be the same length as the vector [0]}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = 1:n.scenarios, my.table): arguments imply differing number of rows: 1, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = c(1:n.scenarios, "{}average"{}), ESS = my.table): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = c(1:n.scenarios, "{}average"{}), Duration = my.table): arguments imply differing number of rows: 2, 0}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in unlist(tsoa.result\$optima\$bias.variance.mse.ci[i.scenario, i.arm.pop]): object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, scenario, value = c(1L, 1L, 1L, 1L)): replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, subpopulation, value = c(1L, 2L, 1L, : replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in `\$<-.data.frame`(`*tmp*`, treatment, value = c("{}A"{}, "{}A"{}, "{}B"{}, : replacement has 4 rows, data has 0}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in data.frame(Scenario = scenario, Treatment = treatment, Subpop = subpopulation, : object 'scenario' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in display[ints] <- "{}d"{}: invalid subscript type 'list'}}\end{kframe}
+
+\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'tsoa.result' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in distribution.of.trials[is.na(distribution.of.trials)] <- 0: object 'distribution.of.trials' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in aggregate(distribution.of.trials\$proportion, by = list(distribution.of.trials\$scenario, : object 'distribution.of.trials' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(plot.table.ss) <- c("{}scenario"{}, "{}sample.size"{}, "{}proportion"{}): object 'plot.table.ss' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in aggregate(distribution.of.trials\$proportion, by = list(distribution.of.trials\$scenario, : object 'distribution.of.trials' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in names(plot.table.duration) <- c("{}scenario"{}, "{}duration"{}, "{}proportion"{}): object 'plot.table.duration' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in ggplot(aes(y = proportion, x = factor(sample.size), fill = factor(scenario)), : object 'plot.table.ss' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in ggplot(aes(y = proportion, x = factor(neaten(duration, 2)), fill = factor(scenario)), : object 'plot.table.duration' not found}}\end{kframe}
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in arrangeGrob(...): object 'tsoa.bar.ss' not found}}\end{kframe}
+\end{knitrout}
+
+
+
+\clearpage
+\section{Glossary}
+
+\begin{itemize}
+    \item 1SEA: the optimal 1-stage design with equal alpha allocation to all hypotheses; 
+    \item 1SOA: the optimal 1-stage design with alpha allocation chosen by optimization;
+    \item 2SEA: the optimal 2-stage design with equal alpha allocation to all hypotheses and futility boundaries chosen by optimization;
+    \item 2SOA: the optimal 2-stage design with interim analysis timing, futility boundaries, and alpha allocation all chosen by optimization.
+    \item A, B, C: treatment arm A, B; control arm C.
+    \item A1: treatment arm A and subpopulation 1. Similar for C1. 
+    \item Bias: bias of the estimator at the end of trial.
+    \item CI.COVERAGE: confidence interval coverage, which is the coverage of a nominal 95\% confidence interval centered at the estimator at the end of trial, obtained by normal approximation.
+    \item CI.INFLATION: confidence interval inflation factor, which is the smallest positive number $\gamma$ such that the confidence interval has exact 95\% coverage if the interval is inflated by $\gamma$.
+    \item Delta1, Delta2: Average treatment effects (difference between mean outcomes under treatment versus control) in subpopulations 1 and 2, respectively.
+    \item ESS: expected sample size.
+    \item FWER: familywise error rate.
+    \item HR: hazard rate.
+    \item MSE: mean squared error of the estimator at the end of trial.
+    \item Scenario: user-supplied outcome distribution under all treatment and subpopulation combinations.
+    \item VAR: variance.
+    \item Subpop: subpopulation.
+    \item Var: variance of the estimator at the end of trial.
+\end{itemize}
+
+
+
+\end{document}

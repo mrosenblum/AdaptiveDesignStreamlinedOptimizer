@@ -1,0 +1,695 @@
+ ### Streamlined Design Optimization Pipeline ##########
+# Authors: Josh Betz (jbetz@jhu.edu) and Michael Rosenblum
+# 
+# 
+
+ 
+### Fixed Parameters ###########################################################
+# Default Parameter Values - ## CONFIRM ## That they are reasonable
+library(knitr)
+default.pct.of.max <- 0.8 # Start at 80% of max sample size/enrollment period
+
+min.n.per.arm <- 25       # For Continuous/Binary Outcomes
+min.enrollment.period <- 0.5    # For Survival Outcomes
+
+default.function.scale <- 1
+default.n.scale <- 100
+default.period.scale <- 2
+default.max.iterations <- 2
+# default.max.iterations <- 5e4 # Use for production
+default.n.simulations <- 1e4
+default.means.temperature <- 100
+default.survival.temperature <- 10
+default.evals.per.temp <- 10
+default.report.iteration <- 1
+default.power.penalty <- 100000
+default.boundary.to.enroll <- 1
+
+data.dir <- "../"
+code.dir <- "."
+optimizer.file <- "design_optimizer.R"
+performance.file <- "ComputePerformanceMetrics.R"
+bin.search.file <- "Utility_BinarySearch.R"
+backend.1tvc.file <- "Backend2Populations1Arm.R"
+backend.2tvc.file <- "Backend2Populations2Arms.R"
+
+# Read in bash arguments from command line - extract parameters
+#bash.args <- commandArgs(trailingOnly=TRUE)
+#if(length(bash.args)>0) {
+#  for(i in 1:length(bash.args)) eval(parse(text=bash.args[i]))
+#}
+
+# Read in optimizer code
+source(file.path(code.dir, optimizer.file))
+source(file.path(code.dir, bin.search.file))
+source(file.path(code.dir, performance.file))
+
+# Load parameters from user interface
+load(file.path(data.dir, "parameters", "ui.parameters.rda"))
+
+
+# Load parameters from user interface
+#load(file.path(data.dir, "parameters", "ui.parameters.rda"))
+
+# TWO ARM EXAMPLES
+# Continuous Example
+# load("michael_09252017_1335.rda"); ui.n.arms <- 2; ui.scenario.weights <- c(1/3,2/3);
+# Binary Example
+#load("michael_09252017_1508.rda"); ui.n.arms <- 2;
+#1 Survival Example
+ load("michael_09252017_1551.rda"); ui.population.parameters[1,] <- c(0.08,0.08,0.06,0.06); ui.max.size <- 3000; 
+
+ 
+# THREE ARM EXAMPLES
+# Continuous Example
+#load("michael_09252017_2052.rda")
+# Binary Example
+#load("michael_09252017_2100.rda")
+# Survival Example
+#load("michael_09252017_2112.rda")
+
+
+# Get start time
+isa.start.time <- proc.time()
+
+### NOTE: restricted to two subpopulations ###
+n.subpopulations <- 2 
+n.arms <- ui.n.arms
+ui.subpopulation.sizes <- c(ui.subpopulation.1.size, 1-ui.subpopulation.1.size)
+# If random seed is supplied, specify seeds. Otherwise pseudorandom seeds
+# are chosen based on the initial RNG state.
+if(!exists("initial.seed")){
+  initial.seed <- sample(x=1:1e8, size=1)
+}
+
+# Set random seed
+set.seed(initial.seed)
+
+# Source design.evaluation code corresponding to number of arms in trial
+if(n.arms==2){
+  source(file.path(code.dir, backend.1tvc.file))
+} else if(n.arms==3){
+  source(file.path(code.dir, backend.2tvc.file))
+}
+# Set functions for computing design features and design evaluation
+# Computes distribution of test statistics in a given scenario,
+# using canonical joint distribution
+get.z.distribution <- 
+  function(...){
+    construct.test.statistics.joint.distribution(...)
+  }
+# Computes efficacy stopping boundaries
+get.efficacy.dunnett <-
+  function(...){
+    get.eff.bound(...)
+  }
+# Evaluates performance of simulated trials 
+evaluate.design.dunnett <- 
+  function(...){
+    design.evaluate(...)
+  }
+
+##
+## Format User Inputs from Graphical User Interface
+##
+
+if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
+  if(n.arms==2){
+    if(ui.type.of.outcome.data=="binary") {
+      ui.outcome.mean <- subset(ui.population.parameters,select=c(2,4,1,3))
+      ui.outcome.sd <- sqrt(ui.outcome.mean*(1-ui.outcome.mean))
+    } else{
+      ui.outcome.mean <- cbind(array(0,c(nrow(ui.population.parameters),2)),subset(ui.population.parameters,select=c(1,2)))
+      ui.outcome.sd <- sqrt(subset(ui.population.parameters,select=c(4,6,3,5)))
+    }
+  } else if(n.arms==3){
+    if(ui.type.of.outcome.data=="binary") {
+      ui.outcome.mean <- ui.population.parameters
+      ui.outcome.sd <- sqrt(ui.outcome.mean*(1-ui.outcome.mean))
+    } else{
+      ui.outcome.mean <- subset(ui.population.parameters,select=c(1,3,5,7,9,11))
+      ui.outcome.sd <- sqrt(subset(ui.population.parameters,select=c(2,4,6,8,10,12)))
+      }
+  }
+  arm.names <- c(LETTERS[3], LETTERS[1:n.arms][-3])[1:n.arms]
+  colnames(ui.outcome.sd) <- colnames(ui.outcome.mean) <-
+    paste0(rep(arm.names, each=n.subpopulations),
+           rep(1:n.subpopulations, n.arms))
+} else { # Survival Cases
+    ui.hazard.rate <- ui.population.parameters
+    if(ui.include.designs.start.subpop.1){
+      number.of.alpha.allocation.components <- number.of.alpha.allocation.components - (n.subpopulations-1)}
+    arm.names <- c(LETTERS[3], LETTERS[1:n.arms][-3])[1:n.arms]
+    colnames(ui.hazard.rate) <- 
+      paste0(rep(arm.names, each=n.subpopulations),
+             rep(1:n.subpopulations, n.arms))
+}
+
+## Run optimizations, starting with 1 stage
+n.stages <- 1 # Single Stage
+number.of.alpha.allocation.components <- n.stages*n.subpopulations
+if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
+ # if(ui.optimization.target=="ESS") {
+  #   Switch Objective Function and Parameters
+  # }
+  max.enrollment.period <- (ui.max.duration-ui.followup.length)
+  max.possible.accrual <- ui.accrual.yearly.rate*max.enrollment.period
+  #Binary search to minimize sample size over feasible designs
+  feasible.n.per.arm <- osea.result <- NULL
+  n.per.arm.upper.bound <- min(ui.max.size, max.possible.accrual)/n.arms
+  n.per.arm.lower.bound <- min.n.per.arm
+  #Increase upper bound if necessary to meet power requirements
+  #repeat{
+  #  osea.design.performance.evaluation <- dunnett.wrapper(outcome.type=ui.type.of.outcome.data,
+  #                                                      n.per.arm=floor(n.per.arm.upper.bound),
+  #                                                      n.arms=n.arms,
+  #                                                      accrual.rate=ui.accrual.yearly.rate,
+  #                                                      delay=ui.followup.length,
+  #                                                      subpopulation.sizes=ui.subpopulation.sizes,
+  #                                                      interim.info.times=NULL,
+  #                                                      outcome.mean=ui.outcome.mean,
+  #                                                      outcome.sd=ui.outcome.sd,
+  #                                                      mcid=ui.mcid,
+  #                                                      futility.boundaries=NULL,
+  #                                                      relative.efficiency=ui.relative.efficiency,        #                                                      n.simulations=default.n.simulations,
+  #                                                      alpha.allocation=rep(1/number.of.alpha.allocation.components,
+  #                                                                           number.of.alpha.allocation.components),
+  #                                                      total.alpha=ui.total.alpha)
+  #  discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
+  #  feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
+  #                                  discrepancy.between.desired.power.empirical.power<=0)
+  #  if(feasibility.indicator){
+  #    break
+  #  }
+  #  n.per.arm.upper.bound <- 2*n.per.arm.upper.bound
+  #}
+  while(n.per.arm.upper.bound-n.per.arm.lower.bound>0.1){
+    candidate.n.per.arm <- mean(c(n.per.arm.lower.bound,n.per.arm.upper.bound))
+    osea.design.performance.evaluation <- dunnett.wrapper(outcome.type=ui.type.of.outcome.data,
+                                      n.per.arm=floor(candidate.n.per.arm),
+                                      n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      delay=ui.followup.length,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      interim.info.times=NULL,
+                                      outcome.mean=ui.outcome.mean,
+                                      outcome.sd=ui.outcome.sd,
+                                      mcid=ui.mcid,
+                                      futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency,
+                                      n.simulations=default.n.simulations,
+                                      alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                                           number.of.alpha.allocation.components),
+                                      total.alpha=ui.total.alpha)
+    discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
+    feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
+                                        discrepancy.between.desired.power.empirical.power<=0)
+    if(feasibility.indicator==TRUE){#Current sample size is feasible; store results and explore smaller sample sizes
+      #osea.result <- osea.design.performance.evaluation;
+      feasible.n.per.arm <- candidate.n.per.arm;
+      n.per.arm.upper.bound <- candidate.n.per.arm} else{ #Current sample size is infeasible; explore larger sample sizes
+      n.per.arm.lower.bound <- candidate.n.per.arm  
+    }
+  }
+  if(is.null(feasible.n.per.arm)){feasible.n.per.arm <- min(ui.max.size, max.possible.accrual)/n.arms} #If none feasible, consider max allowed sample size
+  #Placeholder to force output into format expected by .Rnw file for report building
+  osea.result <-
+    sa.optimize(search.parameters=
+                  list(n.per.arm=floor(feasible.n.per.arm)),
+                search.transforms=
+                  # Cap sample size at minimum of the maximum specified size
+                  # and the accrual rate x maximum allowable duration 
+                  list(n.per.arm=function(x){floor(feasible.n.per.arm)}),
+                fixed.parameters=list(n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      delay=ui.followup.length,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      outcome.type=ui.type.of.outcome.data,
+                                      interim.info.times=NULL,
+                                      outcome.mean=ui.outcome.mean,
+                                      outcome.sd=ui.outcome.sd,
+                                      mcid=ui.mcid,
+                                      futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency,    
+                                      n.simulations=default.n.simulations,
+                                      alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                                           number.of.alpha.allocation.components),
+                                      total.alpha=ui.total.alpha),
+                create.object=dunnett.wrapper,
+                evaluate.object=power.penalized.weighted,
+                function.scale=default.function.scale,
+                parameter.scale=default.n.scale,
+                max.iterations=2,
+                temperature=default.means.temperature,
+                evals.per.temp=default.evals.per.temp,
+                report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
+                power.penalty=default.power.penalty,
+                power.constraints=ui.desired.power,
+                optimization.target=ui.optimization.target)
+  
+  } else {#Survival Outcome 
+  feasible.enrollment.period <- osea.design.performance.evaluation <- NULL
+  enrollment.period.upper.bound <- min(ui.max.duration,
+                                        ui.max.size/ui.accrual.yearly.rate)
+  enrollment.period.lower.bound <- min.enrollment.period
+  feasible.max.duration <- ui.max.duration
+  #repeat{
+  #  osea.design.performance.evaluation <- dunnett.wrapper(outcome.type='survival',
+  #                                                        enrollment.period=enrollment.period.upper.bound,
+  #                                                        n.arms=n.arms,
+  #                                                        accrual.rate=ui.accrual.yearly.rate,
+  #                                                        subpopulation.sizes=ui.subpopulation.sizes,
+  #                                                        non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
+  #                                                        hazard.rate=ui.hazard.rate,
+  #                                                        time=max(ui.max.duration,enrollment.period.upper.bound),
+  #                                                        max.follow=Inf,
+  #                                                        censoring.rate=ui.time.to.event.censoring.rate,
+  #                                                        ni.margin=ui.time.to.event.non.inferiority.trial.margin,
+  #                                                        restrict.enrollment=FALSE,
+  #                                                        mcid=ui.mcid,
+  #                                                        futility.boundaries=NULL,
+  #                                                        relative.efficiency=ui.relative.efficiency, 
+  #                                                         n.simulations=default.n.simulations,
+  #                                                        alpha.allocation=
+  #                                                          rep(1/number.of.alpha.allocation.components,
+  #                                                              number.of.alpha.allocation.components),
+  #                                                        total.alpha=ui.total.alpha)
+  #  discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
+  #  feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
+  #                                  discrepancy.between.desired.power.empirical.power<=0)
+  #  if(feasibility.indicator){
+  #    break
+  #  }
+  #  enrollment.period.upper.bound <- 2*enrollment.period.upper.bound
+  #}
+  while(enrollment.period.upper.bound-enrollment.period.lower.bound>0.01){
+    candidate.enrollment.period <- mean(c(enrollment.period.lower.bound,enrollment.period.upper.bound))
+    osea.design.performance.evaluation <- dunnett.wrapper(outcome.type='survival',
+                                      enrollment.period=candidate.enrollment.period,
+                                      n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
+                                      hazard.rate=ui.hazard.rate,
+                                      time=max(ui.max.duration,candidate.enrollment.period),
+                                      max.follow=Inf,
+                                      censoring.rate=ui.time.to.event.censoring.rate,
+                                      ni.margin=ui.time.to.event.non.inferiority.trial.margin,
+                                      restrict.enrollment=FALSE,
+                                      mcid=ui.mcid,
+                                      futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency, 
+                                      n.simulations=default.n.simulations,
+                                      alpha.allocation=
+                                        rep(1/number.of.alpha.allocation.components,
+                                            number.of.alpha.allocation.components),
+                                      total.alpha=ui.total.alpha)
+    discrepancy.between.desired.power.empirical.power <- max(ui.desired.power-cbind(osea.design.performance.evaluation$empirical.power,osea.design.performance.evaluation$conj.power),na.rm=TRUE)
+    feasibility.indicator <- ifelse(is.na(discrepancy.between.desired.power.empirical.power),TRUE,
+                                    discrepancy.between.desired.power.empirical.power<=0)
+    if(feasibility.indicator){#Current sample size is feasible; store current results and explore smaller sample sizes
+      #osea.result <- osea.design.performance.evaluation;
+      feasible.enrollment.period <- candidate.enrollment.period;
+      feasible.max.duration <- max(ui.max.duration,feasible.enrollment.period)
+      enrollment.period.upper.bound <- candidate.enrollment.period} else{
+        #Current sample size is infeasible; explore larger sample sizes
+      enrollment.period.lower.bound <- candidate.enrollment.period  
+    }
+  }
+  if(is.null(feasible.enrollment.period)){feasible.enrollment.period <- min(ui.max.duration,
+                                                                            ui.max.size/ui.accrual.yearly.rate)} #if no feasible solution, use maximum duration
+  #Placeholder to force output into format expected by .Rnw file for report building
+  osea.result <-
+    sa.optimize(search.parameters=
+                  list(enrollment.period=feasible.enrollment.period),
+                search.transforms=
+                  list(enrollment.period=function(x){feasible.enrollment.period}),
+                fixed.parameters=list(n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      outcome.type='survival',
+                                      non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
+                                      hazard.rate=ui.hazard.rate,
+                                      time=max(feasible.enrollment.period,ui.max.duration),
+                                      max.follow=Inf,
+                                      censoring.rate=ui.time.to.event.censoring.rate,
+                                      ni.margin=ui.time.to.event.non.inferiority.trial.margin,
+                                      restrict.enrollment=FALSE,
+                                      mcid=ui.mcid,
+                                      futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency, 
+                                      n.simulations=default.n.simulations,
+                                      alpha.allocation=
+                                        rep(1/number.of.alpha.allocation.components,
+                                            number.of.alpha.allocation.components),
+                                      total.alpha=ui.total.alpha),
+                create.object=dunnett.wrapper,
+                evaluate.object=power.penalized.weighted,
+                function.scale=default.function.scale,
+                parameter.scale=default.period.scale,
+                max.iterations=2,
+                temperature=default.survival.temperature,
+                evals.per.temp=default.evals.per.temp,
+                report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
+                power.penalty=default.power.penalty,
+                power.constraints=ui.desired.power,
+                optimization.target=ui.optimization.target)
+}
+
+## 1SOA 1 stage optimized alpha
+if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
+  osoa.result <-
+    sa.optimize(search.parameters=
+                  list(n.per.arm=ifelse(!is.null(feasible.n.per.arm),feasible.n.per.arm,max.possible.accrual),
+                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                            number.of.alpha.allocation.components)
+                       ),
+                search.transforms=
+                  # Cap sample size at minimum of the maximum specified size
+                  # and the accrual rate x maximum allowable duration 
+                  list(n.per.arm=function(x) 
+                    ceiling(
+                      squash(x, 
+                             min.n.per.arm,
+                             min(ui.max.size, max.possible.accrual)/n.arms)),
+                    alpha.allocation=reals.to.probability
+                                      ),
+                fixed.parameters=list(n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      delay=ui.followup.length,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      outcome.type=ui.type.of.outcome.data,
+                                      interim.info.times=NULL,
+                                      outcome.mean=ui.outcome.mean,
+                                      outcome.sd=ui.outcome.sd,
+                                      mcid=ui.mcid,
+                                      futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency, 
+                                      n.simulations=default.n.simulations,
+                                      total.alpha=ui.total.alpha),
+                create.object=dunnett.wrapper,
+                evaluate.object=power.penalized.weighted,
+                function.scale=default.function.scale,
+                parameter.scale=c(default.n.scale,rep(1,number.of.alpha.allocation.components)),
+                max.iterations=default.max.iterations,
+                temperature=default.means.temperature,
+                evals.per.temp=default.evals.per.temp,
+                report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
+                power.penalty=default.power.penalty,
+                power.constraints=ui.desired.power,                 
+                optimization.target=ui.optimization.target)
+  
+} else { # Survival Cases
+  osoa.result <-
+    sa.optimize(search.parameters=
+                  list(enrollment.period=ifelse(!is.null(feasible.enrollment.period),feasible.enrollment.period,
+                         min(c(feasible.max.duration,
+                              ui.max.size/ui.accrual.yearly.rate))),
+                       alpha.allocation=
+                         rep(1/number.of.alpha.allocation.components,
+                             number.of.alpha.allocation.components)
+                       ),
+                search.transforms=
+                  list(enrollment.period=function(x)
+                    squash(x, min.enrollment.period,feasible.enrollment.period),
+                    alpha.allocation=reals.to.probability
+                    ),
+                fixed.parameters=list(n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      outcome.type='survival',
+                                      non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
+                                      hazard.rate=ui.hazard.rate,
+                                      time=feasible.max.duration,
+                                      max.follow=Inf,
+                                      censoring.rate=ui.time.to.event.censoring.rate,
+                                      ni.margin=ui.time.to.event.non.inferiority.trial.margin,
+                                      restrict.enrollment=FALSE,
+                                      mcid=ui.mcid,
+                                      futility.boundaries=NULL,
+                                      relative.efficiency=ui.relative.efficiency, 
+                                      n.simulations=default.n.simulations,
+                                      total.alpha=ui.total.alpha),
+                create.object=dunnett.wrapper,
+                evaluate.object=power.penalized.weighted,
+                function.scale=default.function.scale,
+                parameter.scale=c(default.period.scale,rep(1,number.of.alpha.allocation.components)),
+                max.iterations=default.max.iterations,
+                temperature=default.survival.temperature,
+                evals.per.temp=default.evals.per.temp,
+                report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
+                power.penalty=default.power.penalty,
+                power.constraints=ui.desired.power,
+                optimization.target=ui.optimization.target)
+}
+
+## Two stage design
+n.stages <- 2 # Two Stage
+number.of.alpha.allocation.components <- n.stages*n.subpopulations
+
+## 2SEA 2 stage equal alpha
+if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
+  # if(ui.optimization.target=="ESS") {
+  #   Switch Objective Function and Parameters
+  # }
+  tsea.result <-
+    sa.optimize(search.parameters=
+                  list(n.per.arm=ifelse(!is.null(feasible.n.per.arm),feasible.n.per.arm,max.possible.accrual)),
+                search.transforms=
+                  # Cap sample size at minimum of the maximum specified size
+                  # and the accrual rate x maximum allowable duration 
+                  list(n.per.arm=function(x) 
+                    ceiling(
+                      squash(x, 
+                             min.n.per.arm,
+                             min(ui.max.size, max.possible.accrual)/n.arms))
+                  ),
+                fixed.parameters=list(n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      delay=ui.followup.length,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      interim.info.times=c(1/2,1),
+                                      outcome.type=ui.type.of.outcome.data,
+                                      outcome.mean=ui.outcome.mean,
+                                      outcome.sd=ui.outcome.sd,
+                                      mcid=ui.mcid,
+                                      futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
+                                      relative.efficiency=ui.relative.efficiency, 
+                                      n.simulations=default.n.simulations,
+                                      alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                                           number.of.alpha.allocation.components),
+                                      total.alpha=ui.total.alpha),
+                create.object=dunnett.wrapper,
+                evaluate.object=power.penalized.weighted,
+                function.scale=default.function.scale,
+                parameter.scale=default.n.scale,
+                max.iterations=default.max.iterations,
+                temperature=default.means.temperature,
+                evals.per.temp=default.evals.per.temp,
+                report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
+                power.penalty=default.power.penalty,
+                power.constraints=ui.desired.power,
+                optimization.target=ui.optimization.target)
+} else { # Survival Cases
+  if(ui.include.designs.start.subpop.1){
+      number.of.alpha.allocation.components <- number.of.alpha.allocation.components - (n.subpopulations-1)}
+
+  
+    tsea.result <-
+    sa.optimize(search.parameters=
+                  list(enrollment.period=ifelse(!is.null(feasible.enrollment.period),feasible.enrollment.period,
+                                                min(feasible.max.duration,
+                                                     ui.max.size/ui.accrual.yearly.rate))),
+                search.transforms=
+                  list(enrollment.period=function(x)
+                    squash(x, min.enrollment.period,
+                           min(ui.max.duration,
+                               ui.max.size/ui.accrual.yearly.rate))),
+                fixed.parameters=list(n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      outcome.type='survival',
+                                      non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
+                                      hazard.rate=ui.hazard.rate,
+                                      time=c(feasible.max.duration/2,feasible.max.duration),
+                                      max.follow=Inf,
+                                      censoring.rate=ui.time.to.event.censoring.rate,
+                                      ni.margin=ui.time.to.event.non.inferiority.trial.margin,
+                                      restrict.enrollment=FALSE,
+                                      mcid=ui.mcid,
+                                      futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
+                                      relative.efficiency=ui.relative.efficiency, 
+                                      n.simulations=default.n.simulations,
+                                      alpha.allocation=
+                                        rep(1/number.of.alpha.allocation.components,
+                                            number.of.alpha.allocation.components),
+                                      total.alpha=ui.total.alpha),
+                create.object=dunnett.wrapper,
+                evaluate.object=power.penalized.weighted,
+                function.scale=default.function.scale,
+                parameter.scale=default.period.scale,
+                max.iterations=default.max.iterations,
+                temperature=default.survival.temperature,
+                evals.per.temp=default.evals.per.temp,
+                report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
+                power.penalty=default.power.penalty,
+                power.constraints=ui.desired.power,
+                optimization.target=ui.optimization.target)
+}
+
+## 2SOA 2 stage optimized alpha
+if(ui.type.of.outcome.data!="time-to-event"){ # Continuous and Binary Cases
+   tsoa.result <-
+    sa.optimize(search.parameters=
+                  list(n.per.arm=ifelse(!is.null(feasible.n.per.arm),feasible.n.per.arm,max.possible.accrual),
+                       interim.info.times=c(1/2,1),
+                       futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
+                       alpha.allocation=rep(1/number.of.alpha.allocation.components,
+                                            number.of.alpha.allocation.components)
+                       ),
+                search.transforms=
+                  # Cap sample size at minimum of the maximum specified size
+                  # and the accrual rate x maximum allowable duration 
+                  list(n.per.arm=function(x) 
+                    ceiling(
+                      squash(x, 
+                             min.n.per.arm,
+                             min(ui.max.size, max.possible.accrual)/n.arms)),
+                      interim.info.times=function(x){c(squash(x[1],0.1,0.9),1)},
+                      alpha.allocation=reals.to.probability
+                  ),
+                fixed.parameters=list(n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      delay=ui.followup.length,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      outcome.type=ui.type.of.outcome.data,
+                                      outcome.mean=ui.outcome.mean,
+                                      outcome.sd=ui.outcome.sd,
+                                      mcid=ui.mcid,
+                                      relative.efficiency=ui.relative.efficiency, 
+                                      n.simulations=default.n.simulations,
+                                      total.alpha=ui.total.alpha
+                                      ),
+                create.object=dunnett.wrapper,
+                evaluate.object=power.penalized.weighted,
+                function.scale=default.function.scale,
+                parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
+                max.iterations=default.max.iterations,
+                temperature=default.means.temperature,
+                evals.per.temp=default.evals.per.temp,
+                report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
+                power.penalty=default.power.penalty,
+                power.constraints=ui.desired.power,
+                optimization.target=ui.optimization.target)
+  
+} else { # Survival Cases
+  tsoa.result <-
+    sa.optimize(search.parameters=
+                  list(enrollment.period=ifelse(!is.null(feasible.enrollment.period),feasible.enrollment.period,
+                                                min(feasible.max.duration,
+                                                     ui.max.size/ui.accrual.yearly.rate)),
+                       time=c(feasible.max.duration/2,feasible.max.duration),
+                       futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations),
+                       alpha.allocation=
+                         rep(1/number.of.alpha.allocation.components,
+                             number.of.alpha.allocation.components)
+                  ),
+                search.transforms=
+                  list(enrollment.period=function(x)
+                    squash(x, min.enrollment.period,
+                           min(ui.max.duration,
+                               ui.max.size/ui.accrual.yearly.rate)),
+                    time=function(t){t1 <- squash(t[1],0.01,feasible.max.duration-0.01); t2<-squash(t[2],t1+0.01,feasible.max.duration); return(c(t1,t2))}, 
+                    alpha.allocation=reals.to.probability
+                    ),
+                fixed.parameters=list(n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      outcome.type='survival',
+                                      non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
+                                      hazard.rate=ui.hazard.rate,
+                                      max.follow=Inf,
+                                      censoring.rate=ui.time.to.event.censoring.rate,
+                                      ni.margin=ui.time.to.event.non.inferiority.trial.margin,
+                                      restrict.enrollment=FALSE,
+                                      mcid=ui.mcid,
+                                      relative.efficiency=ui.relative.efficiency, 
+                                      n.simulations=default.n.simulations,
+                                      total.alpha=ui.total.alpha),
+                create.object=dunnett.wrapper,
+                evaluate.object=power.penalized.weighted,
+                function.scale=default.function.scale,
+                parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations+number.of.alpha.allocation.components)),
+                max.iterations=default.max.iterations,
+                temperature=default.survival.temperature,
+                evals.per.temp=default.evals.per.temp,
+                report.iteration=default.report.iteration,
+                scenario.weights=ui.scenario.weights,
+                power.penalty=default.power.penalty,
+                power.constraints=ui.desired.power,
+                optimization.target=ui.optimization.target)
+}
+
+for(n.stages in 3:4){
+  number.of.alpha.allocation.components <- n.stages*n.subpopulations
+  multistage.optimization.result <- 
+    sa.optimize(search.parameters=
+                  list(enrollment.period=default.pct.of.max*
+                         pmin(ui.max.duration,
+                              ui.max.size/ui.accrual.yearly.rate),
+                       time=ui.max.duration*seq(1/n.stages,1,length=n.stages),
+                       futility.boundaries=rep(-3,(n.arms-1)*n.subpopulations*(n.stages-1)),
+                       alpha.allocation=
+                         rep(1/number.of.alpha.allocation.components,
+                             number.of.alpha.allocation.components)
+                  ),
+                search.transforms=
+                  list(enrollment.period=function(x){
+                    squash(x, min.enrollment.period,
+                           pmin(ui.max.duration,
+                                ui.max.size/ui.accrual.yearly.rate))},
+                    #                  time=function(t){t1 <- squash(t[1],0.01,ui.max.duration-0.05); t2<-squash(t[2],t1+0.02,ui.max.duration-0.025); t3<-squash(t[3],t2+0.02,ui.max.duration);return(c(t1,t2,t3))}, 
+                    time=function(t){#forces analysis times to be a strictly increasing sequence and to be "squashed" between 0.01 and maximum allowed duration
+                      t.squashed <- squash(t,0.01,ui.max.duration-0.02*(n.stages-1)); 
+                      for(stage.index in 2:n.stages){t.squashed[stage.index] <- squash(t[stage.index],t.squashed[stage.index-1]+0.01,ui.max.duration-0.02*(n.stages-stage.index))};
+                      return(t.squashed)}, 
+                    alpha.allocation=reals.to.probability
+                  ),
+                fixed.parameters=list(n.arms=n.arms,
+                                      accrual.rate=ui.accrual.yearly.rate,
+                                      subpopulation.sizes=ui.subpopulation.sizes,
+                                      outcome.type='survival',
+                                      non.inferiority=ifelse(ui.time.to.event.trial.type=="non-inferiority",TRUE,FALSE),
+                                      hazard.rate=ui.hazard.rate,
+                                      max.follow=Inf,
+                                      censoring.rate=ui.time.to.event.censoring.rate,
+                                      ni.margin=ui.time.to.event.non.inferiority.trial.margin,
+                                      restrict.enrollment=FALSE,
+                                      mcid=ui.mcid,
+                                      n.simulations=default.n.simulations,
+                                      total.alpha=ui.total.alpha),
+                create.object=dunnett.wrapper,
+                evaluate.object=power.penalized.weighted,
+                function.scale=default.function.scale,
+                parameter.scale=c(default.n.scale,rep(1,n.stages+(n.arms-1)*n.subpopulations*(n.stages-1)+number.of.alpha.allocation.components)),
+                max.iterations=default.max.iterations,
+                temperature=default.survival.temperature,
+                evals.per.temp=default.evals.per.temp,
+                report.iteration=default.report.iteration,
+                power.penalty=default.power.penalty,
+                power.constraints=ui.desired.power)
+  do.call("<-",list(paste("multistage.optimization.result",n.stages,sep=""),multistage.optimization.result))
+}
+
+setwd(file.path(data.dir,"results"))
+save(osea.result,osoa.result,tsea.result,tsoa.result,multistage.optimization.result3,multistage.optimization.result4,file="optimizer_output.rda")
+#knit(file.path(code.dir,report.generator.file),output="trial_design_performance_report.tex")
+knit("optimizer_report_final.Rnw")
+

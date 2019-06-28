@@ -688,8 +688,12 @@ design.performance.continuous.or.binary.outcome.type <-
       which(substring(colnames(outcome.mean), first=1, last=1)=="C")
     tx.cols <-
       which(substring(colnames(outcome.mean), first=1, last=1)!="C")
-    mean.differences <- outcome.mean[,tx.cols] -
-      kronecker(matrix(1, ncol=(n.arms-1)), outcome.mean[,control.cols])
+    
+    mean.differences <- 
+      matrix(outcome.mean[,tx.cols], nrow = nrow(outcome.mean)) -
+      kronecker(matrix(1, ncol=(n.arms-1)), 
+                matrix(outcome.mean[,control.cols],
+                       nrow = nrow(outcome.mean)))
       
 
     null.hypotheses <- 1*(mean.differences<1e-6) #Null hypotheses are of the form: mean_difference <= 0.
