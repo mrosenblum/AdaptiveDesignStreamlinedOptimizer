@@ -886,8 +886,12 @@ design.performance.survival.outcome.type <-
       which(substring(colnames(hazard.rate), first=1, last=1)=="C")
     tx.cols <-
       which(substring(colnames(hazard.rate), first=1, last=1)!="C")
-    hazard.ratios <- hazard.rate[,tx.cols]/
-      kronecker(matrix(1, ncol=(n.arms-1)), hazard.rate[,control.cols])  
+    hazard.ratios <- 
+      matrix(data = hazard.rate[,tx.cols], 
+             nrow = nrow(hazard.rate))/
+      kronecker(matrix(1, ncol=(n.arms-1)), 
+                matrix(data = hazard.rate[,control.cols],
+                       nrow = nrow(hazard.rate)))
     
     prop.pop.1 <- subpopulation.sizes[1]
     n.scenarios <- nrow(hazard.rate)
